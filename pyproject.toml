@@ -1,0 +1,61 @@
+[project]
+name = "DL Biomed repo"
+authors = [
+    {name = "Cyril Achard", email = "cyril.achard@epfl.ch"},
+    {name = "Emilie Marcou", email = "emilie.marcou@epfl.ch"},
+    {name = "Edison Von Matt", email = "edison.vonmatt@epfl.ch@epfl.ch"},
+]
+
+
+[tool.ruff]
+target-version = "py38"
+select = [
+    "E", "F", "W",
+    "A",
+    "B",
+    "D",
+    "G",
+    "I",
+    "PT",
+    "PTH",
+    "RET",
+    "SIM",
+    "TCH",
+]
+
+# Never enforce `E501` (line length violations) and 'E741' (ambiguous variable names)
+# and 'G004' (do not use f-strings in logging)
+ignore = ["E501", "E741", "G004"]
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+[tool.ruff.pydocstyle]
+convention = "google"
+
+[tool.black]
+line-length = 79
+
+[tool.isort]
+profile = "black"
+line_length = 79
