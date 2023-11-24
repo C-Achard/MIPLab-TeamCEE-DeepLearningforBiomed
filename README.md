@@ -2,6 +2,14 @@
 
  Brain fingerprinting and task classification project
 
+## TODO
+
+- [ ] : Add a complete `requirements.txt` file
+- [ ] : Create the data and code folders on the servers
+- [ ] : Create data loading functions
+
+
+---
 ## Data access
 
 * Server login:
@@ -56,11 +64,3 @@ Your commits will now be checked by pre-commit.
     b) all files in a directory (from inside the directory) run as it is written, nothing to remplace:  `find . -type f -name "*.*" -exec chmod 775 {} +`
   
     c) all sub-files/directories:  `chmod -R 777 directoryname`
-
-
-
-## TODO
-
-- [ ] : Add a complete `requirements.txt` file
-- [ ] : Create the data and code folders on the servers
-- [ ] : Create data loading functions
