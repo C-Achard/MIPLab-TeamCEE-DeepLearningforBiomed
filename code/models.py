@@ -41,12 +41,15 @@ class MRIVisionTransformers(nn.Module):
         self.dropout = dropout
         self.attention_dropout = attention_dropout
 
-        # self.transformers_embeddings = nn.Linear(input_size**2, output_size)
         self.self_attention = nn.MultiheadAttention(
             input_size, num_heads, dropout=attention_dropout, batch_first=True
         )
-        self.fingerprints = nn.Linear(input_size**2, intermediate_size)
-        self.task_decoder = nn.Linear(input_size**2, intermediate_size)
+        self.fingerprints = nn.Linear(
+            input_size**2, intermediate_size
+        )  # needed ? could also add more
+        self.task_decoder = nn.Linear(
+            input_size**2, intermediate_size
+        )  # ditto
 
         self.fingerprints_classifier = nn.Linear(
             intermediate_size, output_size_subjects
