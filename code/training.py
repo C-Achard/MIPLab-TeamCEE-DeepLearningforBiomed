@@ -2,7 +2,10 @@
 import logging
 import time
 
+import numpy as np
 import torch
+import torch.nn.functional as F
+from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 
 try:
@@ -62,11 +65,13 @@ def training_loop(
         "loss_total": [],
         "loss_si": [],
         "loss_td": [],
-        "acc": [],
+        "acc_si": [],
+        "acc_td": [],
         "val-loss_total": [],
         "val-loss_si": [],
         "val-loss_td": [],
-        "val-acc": [],
+        "val-acc_si": [],
+        "val-acc_td": [],
     }
 
     for epoch in range(1, epochs + 1):
@@ -103,28 +108,56 @@ def training_loop(
             optimizer.step()
 
         train_loss_total = total_loss / len(train_loader)
-        train_loss_fi = loss_si / len(train_loader)
+        train_loss_si = loss_si / len(train_loader)
         loss_td = loss_td / len(train_loader)
 
-        train_acc = 0  # TBA
+        logger.debug(f"SI loss : {train_loss_si}")
+        logger.debug(f"TD loss : {loss_td}")
+
+        # logger.debug(f"{label_target_ids.shape}")
+        # logger.debug(f"{logits_si.shape}")
+        # logger.debug(f"{logits_td.shape}")
+        pred_si = F.softmax(logits_si, dim=1).detach().cpu().numpy()
+        pred_td = F.softmax(logits_td, dim=1).detach().cpu().numpy()
+
+        # logger.debug(f"Pred SI for acc : {pred_si.shape}")
+        # logger.debug(f"Pred TD for acc : {pred_td.shape}")
+        # logger.debug(f"Preds SI : {pred_si}")
+
+        train_acc_si = accuracy_score(
+            y_true=label_target_ids.detach().cpu().squeeze().numpy(),
+            y_pred=np.argmax(pred_si, axis=1),
+        )
+        train_acc_td = accuracy_score(
+            y_true=task_target_ids.detach().cpu().squeeze().numpy(),
+            y_pred=np.argmax(pred_td, axis=1),
+        )
 
         # Validation
-        val_loss_total, val_loss_si, val_loss_td, val_acc = evaluate(
-            model, valid_loader, criterion, device, config
-        )
+        (
+            val_loss_total,
+            val_loss_si,
+            val_loss_td,
+            val_acc_si,
+            val_acc_td,
+        ) = evaluate(model, valid_loader, criterion, device, config)
 
         # Logging
         history["epoch"] += 1
         history["loss_total"].append(train_loss_total)
-        history["loss_si"].append(train_loss_fi)
+        history["loss_si"].append(train_loss_si)
         history["loss_td"].append(loss_td)
-        history["acc"].append(train_acc)
+        history["acc_si"].append(train_acc_si)
         history["val-loss_total"].append(val_loss_total)
         history["val-loss_si"].append(val_loss_si)
         history["val-loss_td"].append(val_loss_td)
-        history["val-acc"].append(val_acc)
+        history["val-acc_si"].append(val_acc_si)
+        history["val-acc_td"].append(val_acc_td)
         print(
-            f"Epoch: {epoch}/{epochs} - loss_total: {train_loss_total:.4f} - acc: {train_acc:.4f} - val-loss_total: {val_loss_total:.4f} - val-acc: {val_acc:.4f} ({time.time()-start_epoch:.2f}s/epoch)"
+            f"Epoch: {epoch}/{epochs} - loss_total: {train_loss_total:.4f}"
+            + f"- Acc: SI {train_acc_si:.4f} / TD {train_acc_td:.4f}"
+            + f"- val-loss_total: {val_loss_total:.4f} - val-acc: SI {val_acc_si:.4f} TD {val_acc_td:.4f}"
+            + f"({time.time()-start_epoch:.2f}s/epoch)"
         )
     print("Finished Training.")
     return history
@@ -157,5 +190,15 @@ def evaluate(model, loader, criterion, device, config):
         test_loss_si = loss_si / len(loader)
         loss_td = loss_td / len(loader)
 
-        acc = 0  # TBA
-    return test_loss_total, test_loss_si, loss_td, acc
+        pred_si = F.softmax(logits_si, dim=1).detach().cpu().numpy()
+        pred_td = F.softmax(logits_td, dim=1).detach().cpu().numpy()
+
+        acc_si = accuracy_score(
+            y_true=label_target_ids.detach().cpu().squeeze().numpy(),
+            y_pred=np.argmax(pred_si, axis=1),
+        )
+        acc_td = accuracy_score(
+            y_true=task_target_ids.detach().cpu().squeeze().numpy(),
+            y_pred=np.argmax(pred_td, axis=1),
+        )
+    return test_loss_total, test_loss_si, loss_td, acc_si, acc_td
