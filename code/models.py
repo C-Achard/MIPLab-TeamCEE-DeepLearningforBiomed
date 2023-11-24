@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.DEBUG)
 # logging.basicConfig(level=logging.INFO)
 
 
-class MRIVisionTransformers(nn.Module):
+class MRIAttention(nn.Module):
     """MRI Vision Transformers model."""
 
     def __init__(
@@ -77,7 +77,7 @@ class MRIVisionTransformers(nn.Module):
 
 if __name__ == "__main__":
     """Test the model."""
-    model = MRIVisionTransformers(output_size_subjects=10)
+    model = MRIAttention(output_size_subjects=10)
     print(model)
     x = torch.randn(1, 400, 400)
     y = model(x)

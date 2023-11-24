@@ -2,3 +2,6 @@ torch
 matplotlib
 jupyterlab
 scikit-learn
+wandb
+pandas
+einops
