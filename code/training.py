@@ -1,8 +1,18 @@
 """Functions for training and evaluating models."""
+import logging
 import time
 
 import torch
 from sklearn.model_selection import train_test_split
+
+try:
+    WANDB_AVAILABLE = True
+except ImportError:
+    WANDB_AVAILABLE = False  # TODO(cyril) : add wandb to training
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.INFO)
 
 
 def balanced_data_shuffle(dataset_dataframe, test_size=0.2):
@@ -76,8 +86,10 @@ def training_loop(
 
             logits_si, logits_td, attention_weights = model(p_matrix)
 
-            loss_si_c = criterion(logits_si, label_target_ids)
-            loss_td_c = criterion(logits_td, task_target_ids)
+            loss_si_c = criterion(
+                logits_si, label_target_ids.long()
+            )  # TODO(eddy) : maybe check the types ? Had to use .long() to avoid error
+            loss_td_c = criterion(logits_td, task_target_ids.long())
             total_loss_c = (
                 loss_si_c * config["lambda_si"]
                 + loss_td_c * config["lambda_td"]
@@ -130,8 +142,8 @@ def evaluate(model, loader, criterion, device, config):
 
             logits_si, logits_td, attention_weights = model(p_matrix)
 
-            loss_si_c = criterion(logits_si, label_target_ids)
-            loss_td_c = criterion(logits_td, task_target_ids)
+            loss_si_c = criterion(logits_si, label_target_ids.long())
+            loss_td_c = criterion(logits_td, task_target_ids.long())
             total_loss_c = (
                 loss_si_c * config["lambda_si"]
                 + loss_td_c * config["lambda_td"]
