@@ -252,6 +252,12 @@ test_loader = DataLoader(
 #         initializing model
 ###-------------------------------------------------------------------------------------------------------------------
 
+# list all available torch devices
+# device_list = ["cpu"] + [torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())]
+# device = device_list[-1]
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
+print(f"Using device: {device}")
+
 model = MRIAttention(
     # output_size_tasks = config["d_model_task_output"],
     output_size_tasks=9,
@@ -260,7 +266,7 @@ model = MRIAttention(
     num_heads=config["num_heads"],
     dropout=config["dropout"],
     attention_dropout=config["attention_dropout"],
-)
+).to(device)
 
 x = torch.randn(1, 400, 400)
 y = model(x)
@@ -278,11 +284,6 @@ print(y[2].size())
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.AdamW(model.parameters(), lr=config["lr"])
 
-# list all available torch devices
-# device_list = ["cpu"] + [torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())]
-# device = device_list[-1]
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
-print(f"Using device: {device}")
 training_loop(
     config["epochs"],
     model,
