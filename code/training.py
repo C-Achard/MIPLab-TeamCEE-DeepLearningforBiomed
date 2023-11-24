@@ -9,6 +9,8 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 
 try:
+    import wandb as wb
+
     WANDB_AVAILABLE = True
 except ImportError:
     WANDB_AVAILABLE = False  # TODO(cyril) : add wandb to training
@@ -73,10 +75,13 @@ def training_loop(
         "val-acc_si": [],
         "val-acc_td": [],
     }
+    if WANDB_AVAILABLE:
+        wb.init(project="DLB-Project", config=config)
+        wb.watch(model)
 
     for epoch in range(1, epochs + 1):
         start_epoch = time.time()
-        loss_si, loss_td, total_loss = 0, 0, 0
+        loss_si, train_loss_td, total_loss = 0, 0, 0
 
         # Training
         model.train()
@@ -101,18 +106,35 @@ def training_loop(
             )
 
             loss_si += loss_si_c.item()
-            loss_td += loss_td_c.item()
+            train_loss_td += loss_td_c.item()
             total_loss += total_loss_c.item()
+            if WANDB_AVAILABLE:
+                wb.log(
+                    {
+                        "Train/loss_si": loss_si_c.item(),
+                        "Train/loss_td": loss_td_c.item(),
+                        "Train/total_loss": total_loss_c.item(),
+                    }
+                )
 
             total_loss_c.backward()
             optimizer.step()
 
         train_loss_total = total_loss / len(train_loader)
         train_loss_si = loss_si / len(train_loader)
-        loss_td = loss_td / len(train_loader)
+        train_loss_td = train_loss_td / len(train_loader)
 
         logger.debug(f"SI loss : {train_loss_si}")
-        logger.debug(f"TD loss : {loss_td}")
+        logger.debug(f"TD loss : {train_loss_td}")
+
+        if WANDB_AVAILABLE:
+            wb.log(
+                {
+                    "Train/Epoch-loss_si": train_loss_si,
+                    "Train/Epoch-loss_td": train_loss_td,
+                    "Train/Epoch-total_loss": train_loss_total,
+                }
+            )
 
         # logger.debug(f"{label_target_ids.shape}")
         # logger.debug(f"{logits_si.shape}")
@@ -133,6 +155,14 @@ def training_loop(
             y_pred=np.argmax(pred_td, axis=1),
         )
 
+        if WANDB_AVAILABLE:
+            wb.log(
+                {
+                    "Train/Epoch-acc_si": train_acc_si,
+                    "Train/Epoch-acc_td": train_acc_td,
+                }
+            )
+
         # Validation
         (
             val_loss_total,
@@ -142,11 +172,22 @@ def training_loop(
             val_acc_td,
         ) = evaluate(model, valid_loader, criterion, device, config)
 
+        if WANDB_AVAILABLE:
+            wb.log(
+                {
+                    "Val/Epoch-loss_si": val_loss_si,
+                    "Val/Epoch-loss_td": val_loss_td,
+                    "Val/Epoch-total_loss": val_loss_total,
+                    "Val/Epoch-acc_si": val_acc_si,
+                    "Val/Epoch-acc_td": val_acc_td,
+                }
+            )
+
         # Logging
         history["epoch"] += 1
         history["loss_total"].append(train_loss_total)
         history["loss_si"].append(train_loss_si)
-        history["loss_td"].append(loss_td)
+        history["loss_td"].append(train_loss_td)
         history["acc_si"].append(train_acc_si)
         history["val-loss_total"].append(val_loss_total)
         history["val-loss_si"].append(val_loss_si)
