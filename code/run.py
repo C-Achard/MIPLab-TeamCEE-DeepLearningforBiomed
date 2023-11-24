@@ -276,8 +276,11 @@ print(y[2].size())
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.AdamW(model.parameters(), lr=config["lr"])
 
-# change to cuda
-device = "cpu"
+# list all available torch devices
+# device_list = ["cpu"] + [torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())]
+# device = device_list[-1]
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
+print(f"Using device: {device}")
 training_loop(
     config["epochs"],
     model,
