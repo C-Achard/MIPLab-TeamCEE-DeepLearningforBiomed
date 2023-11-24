@@ -204,7 +204,9 @@ enc_train_label_encodings = enc_labels.transform(
     data_df_train["subject_id"].tolist()
 )
 enc_train_task_encodings = enc_tasks.transform(
-    data_df_train["task_id"].tolist()
+    data_df_train[
+        "task_id"
+    ].tolist()  # FIXME : duplicate label for REST1-2 task
 )
 
 enc_test_label_encodings = enc_labels.transform(
