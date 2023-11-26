@@ -61,7 +61,7 @@ IDs = [
     117122,
     131722,
     153025,
-    211720,
+    # 211720,
     100408,
     118528,
     133019,
@@ -136,7 +136,7 @@ IDs = [
     128632,
     149539,
     198451,
-    756055,
+    # 756055,
     113922,
     129028,
     149741,
@@ -194,6 +194,10 @@ print(f"Number of subjects: {NUM_SUBJECTS}")
 
 # data_dict_test["enc_label_id"] = enc_test_label_encodings.tolist()
 # data_dict_test["enc_task_id"] = enc_test_task_encodings.tolist()
+
+# in the task column, there is a duplicate label for REST1-2 task
+data_df_train["task_id"] = data_df_train["task_id"].replace("REST2", "REST1")
+data_df_test["task_id"] = data_df_test["task_id"].replace("REST2", "REST1")
 
 # label encoding
 enc_labels = LabelEncoder()
@@ -271,14 +275,20 @@ test_loader = DataLoader(
 ###-------------------------------------------------------------------------------------------------------------------
 
 # list all available torch devices
-# device_list = ["cpu"] + [torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())]
-# device = device_list[-1]
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
+device_list = ["cpu"] + [
+    torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())
+]
+device = device_list[-1]
+# device = "cuda:0" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
+
+NUM_TASKS = data_df_train["enc_task_id"].nunique()
+print(f"Number of tasks: {NUM_TASKS}")
+print(f"Number of subjects: {NUM_SUBJECTS}")
 
 model = MRIAttention(
     # output_size_tasks = config["d_model_task_output"],
-    output_size_tasks=9,
+    output_size_tasks=NUM_TASKS,
     output_size_subjects=NUM_SUBJECTS,
     input_size=config["d_model_input"],
     num_heads=config["num_heads"],
