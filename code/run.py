@@ -36,7 +36,7 @@ config = {
     # general
     "epochs": 100,
     "batch_size": 10,
-    "lr": 1e-3,
+    "lr": 1e-4,
     # model
     "d_model_input": 400,
     "d_model_intermediate": 512,
