@@ -18,7 +18,8 @@ from training import balanced_data_shuffle, training_loop
 from utils import get_df_raw_data
 
 ## Data path ##
-DATA_PATH = (Path.cwd().parent / "DATA").resolve()  # TODO : adapt to server
+# DATA_PATH = (Path.cwd().parent / "DATA").resolve()  # TODO : adapt to server
+DATA_PATH = Path("/media/miplab-nas2/Data3/Hamid/SSBCAPs/HCP100").resolve()
 print(f"Data path: {DATA_PATH}")
 DATA_PATH = str(DATA_PATH)
 
@@ -289,9 +290,9 @@ x = torch.randn(1, 400, 400)
 y = model(x)
 
 # x_si, x_td, attn_weights
-print(y[0].size())
-print(y[1].size())
-print(y[2].size())
+# print(y[0].size())
+# print(y[1].size())
+# print(y[2].size())
 
 #
 ###-------------------------------------------------------------------------------------------------------------------
