@@ -103,9 +103,12 @@ def training_loop(
         "val-acc_si": [],
         "val-acc_td": [],
     }
+    print(f"Using {device}")
     if WANDB_AVAILABLE:
         wb.init(project="DLB-Project", config=config)
         wb.watch(model)
+
+    model.to(device)
 
     for epoch in range(1, epochs + 1):
         start_epoch = time.time()

@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 class MRIAttention(nn.Module):
-    """MRI Vision Transformers model."""
+    """MRI Self-Attention model."""
 
     def __init__(
         self,
@@ -40,8 +40,7 @@ class MRIAttention(nn.Module):
         self.num_heads = num_heads
         self.dropout = dropout
         self.attention_dropout = attention_dropout
-
-        self.self_attention = nn.MultiheadAttention(
+        self.multihead_attention = nn.MultiheadAttention(
             input_size, num_heads, dropout=attention_dropout, batch_first=True
         )
 
@@ -53,8 +52,8 @@ class MRIAttention(nn.Module):
     def forward(self, x):
         """Forward pass of the model."""
         ## Attention ##
-        x, attn_weights = self.self_attention(x, x, x)
-        x = nn.Dropout(self.dropout)(x)
+        x, attn_weights = self.multihead_attention(x, x, x)
+        x = nn.Dropout(self.attention_dropout)(x)
         ## Intermediate linear layers ##
         x = rearrange(x, "b h w -> b (h w)")
         x_si = self.fingerprints_classifier(x)

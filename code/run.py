@@ -18,8 +18,8 @@ from training import balanced_data_shuffle, training_loop
 from utils import get_df_raw_data
 
 ## Data path ##
-# DATA_PATH = (Path.cwd().parent / "DATA").resolve()  # TODO : adapt to server
-DATA_PATH = Path("/media/miplab-nas2/Data3/Hamid/SSBCAPs/HCP100").resolve()
+DATA_PATH = (Path.cwd().parent / "DATA").resolve()  # TODO : adapt to server
+# DATA_PATH = Path("/media/miplab-nas2/Data3/Hamid/SSBCAPs/HCP100").resolve()
 print(f"Data path: {DATA_PATH}")
 DATA_PATH = str(DATA_PATH)
 
@@ -35,7 +35,7 @@ DATA_PATH = str(DATA_PATH)
 config = {
     # general
     "epochs": 100,
-    "batch_size": 4,
+    "batch_size": 10,
     "lr": 1e-3,
     # model
     "d_model_input": 400,
@@ -168,7 +168,7 @@ train_dataframe, valid_dataframe = balanced_data_shuffle(
 
 #
 NUM_SUBJECTS = len(data_df_train["subject_id"].unique())
-print(f"Number of subjects: {NUM_SUBJECTS}")
+# print(f"Number of subjects: {NUM_SUBJECTS}")
 
 #
 ###-------------------------------------------------------------------------------------------------------------------
@@ -276,10 +276,10 @@ test_loader = DataLoader(
 
 # list all available torch devices
 device_list = ["cpu"] + [
-    torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())
+    f"cuda:{i}" for i in range(torch.cuda.device_count())
 ]
 device = device_list[-1]
-# device = "cuda:0" if torch.cuda.is_available() else "cpu"
+# device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
 
 NUM_TASKS = data_df_train["enc_task_id"].nunique()
@@ -296,8 +296,8 @@ model = MRIAttention(
     attention_dropout=config["attention_dropout"],
 ).to(device)
 
-x = torch.randn(1, 400, 400)
-y = model(x)
+# x = torch.randn(1, 400, 400)
+# y = model(x.to(device))
 
 # x_si, x_td, attn_weights
 # print(y[0].size())

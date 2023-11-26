@@ -4,9 +4,11 @@
 
 ## TODO
 
-- [ ] : Add a complete `requirements.txt` file
-- [ ] : Create the data and code folders on the servers
-- [ ] : Create data loading functions
+- [x] : Add a complete `requirements.txt` file
+- [x] : Create the data and code folders on the servers
+- [x] : Create data loading functions
+- [x] : Create first model
+- [ ] : Train first good model
 
 
 ---
