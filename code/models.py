@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.DEBUG)
 # logging.basicConfig(level=logging.INFO)
 
 
-class MRIAttention(nn.Module):
+class MRIAttentionLinear(nn.Module):
     """MRI Self-Attention model."""
 
     def __init__(
@@ -60,13 +60,48 @@ class MRIAttention(nn.Module):
         x_td = self.task_classifier(x)
         return x_si, x_td, attn_weights
 
+class MRIAttention(nn.Module):
+    """MRI Self-Attention model."""
+    def __init__(self, output_size_subjects, output_size_tasks=8, input_size=400, num_heads=4, dropout=0.1, attention_dropout=0.1):
+        """Initialize the model.
 
-if __name__ == "__main__":
-    """Test the model."""
-    model = MRIAttention(output_size_subjects=10)
-    print(model)
-    x = torch.randn(1, 400, 400)
-    y = model(x)
-    print(y[0].shape)
-    print(y[1].shape)
-    print(y[2].shape)
+        Args:
+            output_size_subjects (int): number of subjects to classify.
+            output_size_tasks (int): number of tasks to classify.
+            input_size (int): size of the input matrix.
+            num_heads (int): number of heads in the multi-head attention.
+            dropout (float): dropout rate.
+            attention_dropout (float): dropout rate for the attention layers.
+        """
+        super().__init__()
+        self.input_size = input_size
+        self.num_heads = num_heads
+        self.dropout = dropout
+        self.attention_dropout = attention_dropout
+        self.multihead_attention = nn.MultiheadAttention(input_size, num_heads, dropout=attention_dropout, batch_first=True)
+        self.fingerprints = nn.Linear(input_size**2, output_size_subjects)
+        self.task_decoder = nn.Linear(input_size**2, output_size_tasks)
+    
+    def forward(self, x):
+        """Forward pass of the model."""
+        ## Attention ##
+        x, attn_weights = self.multihead_attention(x, x, x)
+        x = nn.Dropout(self.attention_dropout)(x)
+        
+        x = rearrange(x, "b h w -> b (h w)")
+        ## Classification layers ##
+        x_si = self.fingerprints(x)
+        x_si = nn.Dropout(self.dropout)(x_si)
+        x_td = self.task_decoder(x)
+        x_td = nn.Dropout(self.dropout)(x_td)
+        return x_si, x_td, attn_weights
+    
+# if __name__ == "__main__":
+#     """Test the model."""
+#     model = MRIAttentionLinear(output_size_subjects=10)
+#     print(model)
+#     x = torch.randn(1, 400, 400)
+#     y = model(x)
+#     print(y[0].shape)
+#     print(y[1].shape)
+#     print(y[2].shape)

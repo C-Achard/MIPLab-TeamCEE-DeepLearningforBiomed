@@ -11,7 +11,7 @@ import torch.nn as nn
 
 # import sys
 # sys.path.append("../code/")
-from models import MRIAttention
+from models import MRIAttentionLinear, MRIAttention
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import DataLoader, TensorDataset
 from training import balanced_data_shuffle, training_loop
@@ -43,12 +43,13 @@ config = {
     "d_model_task_output": 8,
     "d_model_fingerprint_output": None,  # needs to be determined from data
     "dropout": 0.1,
-    "attention_dropout": 0.1,
-    "num_heads": 4,
+    "attention_dropout": 0.99,
+    "num_heads": 1,
     "num_layers": 0,  # TBA?
     # optimizer
     "lambda_si": 0.5,
     "lambda_td": 0.5,
+    "weight_decay": 0.1,
 }
 
 #
@@ -310,7 +311,9 @@ model = MRIAttention(
 ###-------------------------------------------------------------------------------------------------------------------
 
 criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.AdamW(model.parameters(), lr=config["lr"])
+optimizer = torch.optim.AdamW(model.parameters(), lr=config["lr"],
+                              weight_decay=config["weight_decay"]
+                              )
 
 training_loop(
     config["epochs"],
