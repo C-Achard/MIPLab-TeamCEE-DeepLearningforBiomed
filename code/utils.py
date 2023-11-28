@@ -28,9 +28,9 @@ def get_df_raw_data(path, IDs, save_wt_path=False):
             file = str(file).split("/")[-1]
             if "RL" in file:
                 task_id_t = file.split("_")[1]
-                 if task_id_t == 'REST2':
+                if task_id_t == 'REST2':
                     continue
-                 else:
+                else:
                     # if save_wt_path == True, then we save the path to the mat file
                     if save_wt_path is True:
                         mat_t = str(folder_id / file)
@@ -46,7 +46,7 @@ def get_df_raw_data(path, IDs, save_wt_path=False):
 
             # for test dataset
             if "LR" in file:
-                 task_id_t = file.split("_")[1]
+                task_id_t = file.split("_")[1]
                 if task_id_t == 'REST2':
                     continue
                 else:
