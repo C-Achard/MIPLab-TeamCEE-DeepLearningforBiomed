@@ -4,14 +4,12 @@
 #         imports
 ###-------------------------------------------------------------------------------------------------------------------
 from pathlib import Path
-
+import logging
 import numpy as np
 import torch
 import torch.nn as nn
 
-# import sys
-# sys.path.append("../code/")
-from models import MRIAttentionLinear, MRIAttention
+from models import MRIAttentionLinear, MRIAttention, MRICustomAttention
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import DataLoader, TensorDataset
 from training import balanced_data_shuffle, training_loop
@@ -23,6 +21,7 @@ DATA_PATH = (Path.cwd().parent / "DATA").resolve()  # TODO : adapt to server
 print(f"Data path: {DATA_PATH}")
 DATA_PATH = str(DATA_PATH)
 
+logging.basicConfig(level=logging.INFO)
 #
 # %load_ext autoreload
 # %autoreload 2
@@ -42,10 +41,10 @@ config = {
     # "d_model_intermediate": 512,
     "d_model_task_output": 8,
     "d_model_fingerprint_output": None,  # needs to be determined from data
-    "dropout": 0.1,
-    "attention_dropout": 0.9,
+    # "dropout": 0,
+    "attention_dropout": 0.1,
     "num_heads": 1,
-    "num_layers": 0,  # TBA?
+    # "num_layers": 0,  # TBA?
     # optimizer
     "lambda_si": 0.5,
     "lambda_td": 0.5,
@@ -287,13 +286,18 @@ NUM_TASKS = data_df_train["enc_task_id"].nunique()
 print(f"Number of tasks: {NUM_TASKS}")
 print(f"Number of subjects: {NUM_SUBJECTS}")
 
-model = MRIAttention(
-    # output_size_tasks = config["d_model_task_output"],
-    output_size_tasks=NUM_TASKS,
+# model = MRIAttention(
+#     # output_size_tasks = config["d_model_task_output"],
+#     output_size_tasks=NUM_TASKS,
+#     output_size_subjects=NUM_SUBJECTS,
+#     input_size=config["d_model_input"],
+#     attention_dropout=config["attention_dropout"],
+#     num_heads=config["num_heads"],
+# ).to(device)
+model = MRICustomAttention(
     output_size_subjects=NUM_SUBJECTS,
+    output_size_tasks=NUM_TASKS,
     input_size=config["d_model_input"],
-    num_heads=config["num_heads"],
-    dropout=config["dropout"],
     attention_dropout=config["attention_dropout"],
 ).to(device)
 
@@ -314,6 +318,9 @@ criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.AdamW(model.parameters(), lr=config["lr"],
                               weight_decay=config["weight_decay"]
                               )
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    optimizer, mode="min", factor=0.1, patience=10, verbose=True
+)
 
 training_loop(
     config["epochs"],
@@ -324,4 +331,5 @@ training_loop(
     optimizer,
     device,
     config,
+    scheduler=scheduler,
 )

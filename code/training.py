@@ -89,6 +89,7 @@ def training_loop(
     optimizer,
     device,
     config,
+    scheduler=None,
 ):
     """Training loop."""
     history = {
@@ -103,6 +104,7 @@ def training_loop(
         "val-loss_td": [],
         "val-acc_si": [],
         "val-acc_td": [],
+        "LR": [],
     }
     print(f"Using {device}")
     if WANDB_AVAILABLE:
@@ -225,7 +227,11 @@ def training_loop(
 
             total_loss_c.backward()
             optimizer.step()
-
+        if scheduler is not None:
+            scheduler.step(total_loss)
+            if WANDB_AVAILABLE:
+                wb.log({"LR/LR": optimizer.param_groups[0]["lr"]})
+        
         train_loss_total = total_loss / len(train_loader)
         train_loss_si = loss_si / len(train_loader)
         train_loss_td = train_loss_td / len(train_loader)
@@ -283,6 +289,7 @@ def training_loop(
         history["val-loss_td"].append(val_loss_td)
         history["val-acc_si"].append(val_acc_si)
         history["val-acc_td"].append(val_acc_td)
+        history["LR"].append(optimizer.param_groups[0]["lr"])
         print(
             f"Epoch: {epoch}/{epochs} - loss_total: {train_loss_total:.4f}"
             + f" - acc: SI {train_acc_si:.2f}% / TD {train_acc_td:.2f}%"

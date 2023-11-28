@@ -2,12 +2,14 @@
 import logging
 
 from einops import rearrange
+import torch
 from torch import nn
+import torch.nn.functional as F
 
 # TODO(cyril) : see if EGNNA from Homework2 can be used here (if self-attention is not enough)
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
-# logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 class MRIAttentionLinear(nn.Module):
@@ -98,6 +100,9 @@ class MRIAttention(nn.Module):
         ## Attention ##
         x, attn_weights = self.multihead_attention(x, x, x)
         x = nn.Dropout(self.attention_dropout)(x)
+        logger.debug(f"multihead_attention: {x.shape}")
+        # x = F.softmax(x, dim=1)
+        # logger.debug(f"softmax: {x.shape}")
 
         x = rearrange(x, "b h w -> b (h w)")
         ## Classification layers ##
@@ -107,13 +112,128 @@ class MRIAttention(nn.Module):
         # x_td = nn.Dropout(self.dropout)(x_td)
         return x_si, x_td, attn_weights
 
+# class EGNNA()
 
-# if __name__ == "__main__":
-#     """Test the model."""
-#     model = MRIAttentionLinear(output_size_subjects=10)
-#     print(model)
-#     x = torch.randn(1, 400, 400)
-#     y = model(x)
-#     print(y[0].shape)
-#     print(y[1].shape)
-#     print(y[2].shape)
+class CustomAttentionLayer(nn.Module):
+    """Custom self-attention layer.
+
+    Reference : Exploiting Edge Features for Graph Neural Networks, Gong and Cheng, 2019
+
+    Args:
+        in_features (int): number of input node features.
+        out_features (int): number of output node features.
+        activation (nn.Module or callable): activation function to apply. (optional)
+        attention_activation (nn.Module or callable): activation function to apply to the attention scores. (default : LeakyReLU(0.2))
+    """
+
+    def __init__(
+        self,
+        in_features=400,
+        out_features=400,
+        activation=None,
+        attention_activation=None,
+        alpha=0.2,
+    ):
+        """Initialize the attention-based graph convolutional layer.
+
+        Args:
+            in_features (int): number of input node features.
+            out_features (int): number of output node features.
+            num_nodes (int): max number of nodes in the graph. (default: 28)
+            activation (nn.Module or callable): activation function to apply. (optional)
+            attention_activation (nn.Module or callable): activation function to apply to the attention scores. (default : LeakyReLU(0.2))
+            alpha (float): alpha value for the LeakyReLU activation of attention score. (default: 0.2)
+        """
+        super().__init__()
+        self.weight = nn.Linear(in_features, out_features, bias=False)
+        # self.S = nn.Linear(2 * out_features, in_features, bias=False)
+        self.S = nn.Linear(in_features, in_features, bias=False)
+        self.activation = activation if activation is not None else lambda x: x
+        self.att_activation = (
+            attention_activation
+            if attention_activation is not None
+            else nn.LeakyReLU(alpha)
+        )
+        self.softmax = nn.Softmax(dim=2)
+        self.instance_norm = nn.LayerNorm(out_features)
+
+    def _reset_parameters(self):
+        nn.init.kaiming_uniform_(self.weight.weight)
+        nn.init.kaiming_uniform_(self.a.weight)
+
+    def forward(self, x):
+        """Perform graph convolution operation with edge features.
+
+        Uses edge features as "channels" for the attention scores.
+
+        Args:
+            x (Tensor): Input matrix of size (batch, in_features, in_features).
+
+        Returns:
+            Tensor: Output matrix of size (batch, out_features, out_features).
+            Tensor: Attention scores of size (batch, out_features, out_features).
+        """
+        logger.debug(f"weight: {self.weight.weight.shape}")
+        support = self.weight(x)
+        logger.debug(f"support: {support.shape}")
+
+        # cat_features = torch.cat([support, support], dim=2)
+        # logger.debug(f"cat_features: {cat_features.shape}")
+        att_score = self.att_activation(self.S(support))
+        att_score = self.softmax(att_score)
+
+        logger.debug(f"att_score: {att_score.shape}")
+
+        alpha_channels = att_score * support
+        logger.debug(f"alpha_channels: {alpha_channels.shape}")
+
+        alpha_channels = self.instance_norm(
+            alpha_channels
+        )
+        out = torch.bmm(alpha_channels, support)
+        return self.activation(out), att_score
+
+class MRICustomAttention(nn.Module):
+    """MRI Self-Attention model."""
+    def __init__(self,
+                    output_size_subjects,
+                    output_size_tasks=8,
+                    input_size=400,
+                    attention_dropout=0.1,
+                    ):
+            """Initialize the model.
+    
+            Args:
+                output_size_subjects (int): number of subjects to classify.
+                output_size_tasks (int): number of tasks to classify.
+                input_size (int): size of the input matrix.
+                attention_dropout (float): dropout rate for the attention layers.
+            """
+            super().__init__()
+            self.input_size = input_size
+            self.attention_dropout = attention_dropout
+            self.attention = CustomAttentionLayer(input_size, input_size)
+            self.fingerprints = nn.Linear(input_size**2, output_size_subjects)
+            self.task_decoder = nn.Linear(input_size**2, output_size_tasks)
+            
+    def forward(self, x):
+        """Forward pass of the model."""
+        ## Attention ##
+        x, attn_weights = self.attention(x)
+        x = nn.Dropout(self.attention_dropout)(x)
+
+        x = rearrange(x, "b h w -> b (h w)")
+        ## Classification layers ##
+        x_si = self.fingerprints(x)
+        x_td = self.task_decoder(x)
+        return x_si, x_td, attn_weights
+
+if __name__ == "__main__":
+    """Test the model."""
+    model = MRIAttention(output_size_subjects=10)
+    print(model)
+    x = torch.randn(1, 400, 400)
+    y = model(x)
+    print(y[0].shape)
+    print(y[1].shape)
+    print(y[2].shape)
