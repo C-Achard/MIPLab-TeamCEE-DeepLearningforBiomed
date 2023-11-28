@@ -13,7 +13,7 @@ try:
 
     WANDB_AVAILABLE = True
 except ImportError:
-    WANDB_AVAILABLE = False  # TODO(cyril) : add wandb to training
+    WANDB_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
