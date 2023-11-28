@@ -39,11 +39,11 @@ config = {
     "lr": 1e-4,
     # model
     "d_model_input": 400,
-    "d_model_intermediate": 512,
+    # "d_model_intermediate": 512,
     "d_model_task_output": 8,
     "d_model_fingerprint_output": None,  # needs to be determined from data
     "dropout": 0.1,
-    "attention_dropout": 0.99,
+    "attention_dropout": 0.9,
     "num_heads": 1,
     "num_layers": 0,  # TBA?
     # optimizer
