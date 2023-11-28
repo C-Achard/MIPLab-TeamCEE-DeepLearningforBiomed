@@ -7,6 +7,7 @@ import torch
 import torch.nn.functional as F
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
+import seaborn as sns
 
 try:
     import wandb as wb
@@ -126,6 +127,52 @@ def training_loop(
             task_target_ids = batch[2].to(device)
 
             logits_si, logits_td, attention_weights = model(p_matrix)
+            
+            # create heatmap from attention weights and log to wandb
+            if WANDB_AVAILABLE:
+                if epoch % 20 == 0 and _i == 0:
+                    heatmap_att = sns.heatmap(
+                        np.mean(
+                            attention_weights.squeeze().detach().cpu().numpy(),
+                            axis=0
+                        ),
+                        annot=False,
+                        cmap="turbo",
+                        xticklabels=False,
+                        yticklabels=False,
+                        cbar=False
+                    )
+                    wb.log({"Att/attention_weights": wb.Image(heatmap_att)})
+                    heatmap_att_output = sns.heatmap(
+                        np.mean(
+                            torch.matmul(attention_weights, p_matrix).squeeze().detach().cpu().numpy(),
+                            axis=0
+                        ),
+                        annot=False,
+                        cmap="turbo",
+                        xticklabels=False,
+                        yticklabels=False,
+                        cbar=False
+                    )
+                    wb.log({"Att/attention_output": wb.Image(heatmap_att_output)})
+                    # wb.log({"Att/attention_weights": wb.plots.HeatMap(
+                    #     x_labels=[f"p{i}" for i in range(1, 401)],
+                    #     y_labels=[f"p{i}" for i in range(1, 401)],
+                    #     matrix_values=np.mean(
+                    #         attention_weights.squeeze().detach().cpu().numpy(),
+                    #         axis=0
+                    #         ),
+                    #     show_text=False
+                    # )})
+                    # wb.log({"Att/attention_output": wb.plots.HeatMap(
+                    #     x_labels=[f"p{i}" for i in range(1, 401)],
+                    #     y_labels=[f"p{i}" for i in range(1, 401)],
+                    #     matrix_values=np.mean(
+                    #         torch.matmul(attention_weights, p_matrix).squeeze().detach().cpu().numpy(),
+                    #         axis=0
+                    #         ),
+                    #     show_text=False
+                    # )})
 
             loss_si_c = criterion(
                 logits_si, label_target_ids.long()
