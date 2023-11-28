@@ -111,6 +111,9 @@ def training_loop(
         wb.init(project="DLB-Project", config=config)
         wb.watch(model)
 
+    if scheduler is not None:
+        print("Using scheduler")
+    
     model.to(device)
 
     for epoch in range(1, epochs + 1):
@@ -119,9 +122,7 @@ def training_loop(
 
         # Training
         model.train()
-        for _i, batch in enumerate(
-            train_loader
-        ):  # NOTE: you can add tqdm(enumerate(train_loader)) to get a progress bar
+        for _i, batch in enumerate(train_loader):
             optimizer.zero_grad()
 
             p_matrix = batch[0].to(device)
@@ -228,7 +229,7 @@ def training_loop(
             total_loss_c.backward()
             optimizer.step()
         if scheduler is not None:
-            scheduler.step(total_loss)
+            scheduler.step()
             if WANDB_AVAILABLE:
                 wb.log({"LR/LR": optimizer.param_groups[0]["lr"]})
         

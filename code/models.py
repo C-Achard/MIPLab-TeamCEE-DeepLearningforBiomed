@@ -5,6 +5,7 @@ from einops import rearrange
 import torch
 from torch import nn
 import torch.nn.functional as F
+import math
 
 # TODO(cyril) : see if EGNNA from Homework2 can be used here (if self-attention is not enough)
 logger = logging.getLogger(__name__)
@@ -61,6 +62,39 @@ class MRIAttentionLinear(nn.Module):
         x_td = self.task_classifier(x)
         return x_si, x_td, attn_weights
 
+class DotProductAttention(nn.Module):
+    """Dot Product Attention module."""
+    def __init__(self, dropout_p=0.0):
+        """Initialize the module.
+        
+        Args:
+            dropout_p (float): dropout rate.
+        """
+        super().__init__()
+        self.dropout_p = dropout_p
+        
+    def forward(self, query, key, value):
+        """Forward pass of the module.
+        
+        Args:
+            query (torch.Tensor): query matrix of size (batch, L, d_k).
+            key (torch.Tensor): key matrix of size (batch, S, d_k).
+            value (torch.Tensor): value matrix of size (batch, S, d_v).
+            
+        Returns:
+            torch.Tensor: output matrix of size (batch, L, d_v).
+            torch.Tensor: attention weights of size (batch, L, S)."""
+        L, S = query.size(-2), key.size(-2)
+        scale_factor = 1 / math.sqrt(query.size(-1))
+        attn_bias = torch.zeros(L, S, dtype=query.dtype).to(query.device)
+
+        attn_weight = query @ key.transpose(-2, -1) * scale_factor
+        attn_weight += attn_bias
+        attn_weight = torch.softmax(attn_weight, dim=-1)
+        attn_weight = torch.dropout(attn_weight, self.dropout_p, train=True)
+        
+        return attn_weight @ value, attn_weight
+        
 
 class MRIAttention(nn.Module):
     """MRI Self-Attention model."""
@@ -92,6 +126,7 @@ class MRIAttention(nn.Module):
         self.multihead_attention = nn.MultiheadAttention(
             input_size, num_heads, dropout=attention_dropout, batch_first=True
         )
+        # self.attention = DotProductAttention(dropout_p=attention_dropout)
         self.fingerprints = nn.Linear(input_size**2, output_size_subjects)
         self.task_decoder = nn.Linear(input_size**2, output_size_tasks)
 
@@ -99,6 +134,7 @@ class MRIAttention(nn.Module):
         """Forward pass of the model."""
         ## Attention ##
         x, attn_weights = self.multihead_attention(x, x, x)
+        # x, attn_weights = self.attention(x, x, x)
         x = nn.Dropout(self.attention_dropout)(x)
         logger.debug(f"multihead_attention: {x.shape}")
         # x = F.softmax(x, dim=1)
@@ -112,9 +148,9 @@ class MRIAttention(nn.Module):
         # x_td = nn.Dropout(self.dropout)(x_td)
         return x_si, x_td, attn_weights
 
-# class EGNNA()
+        
 
-class CustomAttentionLayer(nn.Module):
+class EGNNA(nn.Module):
     """Custom self-attention layer.
 
     Reference : Exploiting Edge Features for Graph Neural Networks, Gong and Cheng, 2019
@@ -212,7 +248,7 @@ class MRICustomAttention(nn.Module):
             super().__init__()
             self.input_size = input_size
             self.attention_dropout = attention_dropout
-            self.attention = CustomAttentionLayer(input_size, input_size)
+            self.attention = EGNNA(input_size, input_size)
             self.fingerprints = nn.Linear(input_size**2, output_size_subjects)
             self.task_decoder = nn.Linear(input_size**2, output_size_tasks)
             

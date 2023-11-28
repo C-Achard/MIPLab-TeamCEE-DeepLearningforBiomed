@@ -9,7 +9,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from models import MRIAttentionLinear, MRIAttention, MRICustomAttention
+from models import MRIAttentionLinear, MRIAttention, EGNNA
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import DataLoader, TensorDataset
 from training import balanced_data_shuffle, training_loop
@@ -286,20 +286,20 @@ NUM_TASKS = data_df_train["enc_task_id"].nunique()
 print(f"Number of tasks: {NUM_TASKS}")
 print(f"Number of subjects: {NUM_SUBJECTS}")
 
-# model = MRIAttention(
-#     # output_size_tasks = config["d_model_task_output"],
-#     output_size_tasks=NUM_TASKS,
-#     output_size_subjects=NUM_SUBJECTS,
-#     input_size=config["d_model_input"],
-#     attention_dropout=config["attention_dropout"],
-#     num_heads=config["num_heads"],
-# ).to(device)
-model = MRICustomAttention(
-    output_size_subjects=NUM_SUBJECTS,
+model = MRIAttention(
+    # output_size_tasks = config["d_model_task_output"],
     output_size_tasks=NUM_TASKS,
+    output_size_subjects=NUM_SUBJECTS,
     input_size=config["d_model_input"],
     attention_dropout=config["attention_dropout"],
+    num_heads=config["num_heads"],
 ).to(device)
+# model = EGNNA(
+#     output_size_subjects=NUM_SUBJECTS,
+#     output_size_tasks=NUM_TASKS,
+#     input_size=config["d_model_input"],
+#     attention_dropout=config["attention_dropout"],
+# ).to(device)
 
 # x = torch.randn(1, 400, 400)
 # y = model(x.to(device))
@@ -318,8 +318,11 @@ criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.AdamW(model.parameters(), lr=config["lr"],
                               weight_decay=config["weight_decay"]
                               )
-scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-    optimizer, mode="min", factor=0.1, patience=10, verbose=True
+# scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+#     optimizer, mode="min", factor=0.1, patience=2, verbose=True, min_lr=1e-8, cooldown=10, threshold=1e-4
+# )
+scheduler = torch.optim.lr_scheduler.StepLR(
+    optimizer, step_size=20, gamma=0.1
 )
 
 training_loop(
@@ -331,5 +334,5 @@ training_loop(
     optimizer,
     device,
     config,
-    scheduler=scheduler,
+    # scheduler=scheduler,
 )
