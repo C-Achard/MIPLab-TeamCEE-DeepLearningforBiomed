@@ -10,12 +10,12 @@ def get_df_raw_data(path, IDs, save_wt_path=False):
 
     Some Description
     """
-    raw_data_train = {"subject_id": [], "task_id": [], "mat": []}
-    raw_data_test = {"subject_id": [], "task_id": [], "mat": []}
+    raw_data_train = {"subject_id": [], "task": [], "mat": []}
+    raw_data_test = {"subject_id": [], "task": [], "mat": []}
 
     # do a dataframe where in the column data we have either the data or the path to the data (less heavy)
-    dataframe_train = pd.DataFrame(columns=["subject_id", "task_id", "mat"])
-    dataframe_test = pd.DataFrame(columns=["subject_id", "task_id", "mat"])
+    dataframe_train = pd.DataFrame(columns=["subject_id", "task", "mat"])
+    dataframe_test = pd.DataFrame(columns=["subject_id", "task", "mat"])
 
     for subject_id in IDs:
         path = Path(path)
@@ -41,7 +41,7 @@ def get_df_raw_data(path, IDs, save_wt_path=False):
                    
                     # complete dict with label_id and taks and mat
                     raw_data_train["subject_id"].append(label_id_t)
-                    raw_data_train["task_id"].append(task_id_t)
+                    raw_data_train["task"].append(task_id_t)
                     raw_data_train["mat"].append(mat_t["v"])
 
             # for test dataset
@@ -59,15 +59,15 @@ def get_df_raw_data(path, IDs, save_wt_path=False):
                    
                     # complete dict with label_id and taks and mat
                     raw_data_test["subject_id"].append(label_id_t)
-                    raw_data_test["task_id"].append(task_id_t)
+                    raw_data_test["task"].append(task_id_t)
                     raw_data_test["mat"].append(mat_t["v"])
 
     dataframe_train["subject_id"] = raw_data_train["subject_id"]
-    dataframe_train["task_id"] = raw_data_train["task_id"]
+    dataframe_train["task"] = raw_data_train["task"]
     dataframe_train["mat"] = raw_data_train["mat"]
 
     dataframe_test["subject_id"] = raw_data_test["subject_id"]
-    dataframe_test["task_id"] = raw_data_test["task_id"]
+    dataframe_test["task"] = raw_data_test["task"]
     dataframe_test["mat"] = raw_data_test["mat"]
     # return raw_data_train, raw_data_test
     return dataframe_train, dataframe_test
