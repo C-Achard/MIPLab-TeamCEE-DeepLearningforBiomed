@@ -49,6 +49,7 @@ def balanced_data_shuffle(dataset_dataframe, test_size=0.2):
             print(
                 f"Moved {len(subject_tasks)} tasks from subject {subject} to the train set"
             )
+    return train_subjects, test_subjects
 
 
 def training_loop(
