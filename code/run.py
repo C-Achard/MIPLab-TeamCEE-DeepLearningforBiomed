@@ -162,6 +162,7 @@ IDs = [
 data_df_train, data_df_test = get_df_raw_data(
     DATA_PATH, [IDs[0], IDs[5], IDs[10]]
 )
+train_dataframe, valid_dataframe = balanced_data_shuffle(dataset_dataframe, test_size=0.2)
 # display(data_df_train.head(10))
 
 #
