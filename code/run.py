@@ -14,7 +14,7 @@ import torch.nn as nn
 from models import MRIAttention
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import DataLoader, TensorDataset
-from training import training_loop
+from training import training_loop, balanced_data_shuffle
 from utils import get_df_raw_data
 
 ## Data path ##
@@ -198,16 +198,27 @@ print(f"Number of subjects: {NUM_SUBJECTS}")
 enc_labels = LabelEncoder()
 enc_tasks = LabelEncoder()
 
-enc_labels.fit(data_df_train["subject_id"].tolist())
-enc_tasks.fit(data_df_train["task_id"].tolist())
+enc_labels.fit(train_dataframe["subject_id"].tolist())
+enc_tasks.fit(train_dataframe["task_id"].tolist())
 
 enc_train_label_encodings = enc_labels.transform(
-    data_df_train["subject_id"].tolist()
+    train_dataframe["subject_id"].tolist()
 )
 enc_train_task_encodings = enc_tasks.transform(
-    data_df_train[
+    train_dataframe[
         "task_id"
-    ].tolist()  # FIXME : duplicate label for REST1-2 task
+    ].tolist()  
+)
+enc_labels.fit(valid_dataframe["subject_id"].tolist())
+enc_tasks.fit(valid_dataframe["task_id"].tolist())
+
+enc_valid_label_encodings = enc_labels.transform(
+    valid_dataframe["subject_id"].tolist()
+)
+enc_valid_task_encodings = enc_tasks.transform(
+    valid_dataframe[
+        "task_id"
+    ].tolist()  
 )
 
 enc_test_label_encodings = enc_labels.transform(
@@ -215,8 +226,10 @@ enc_test_label_encodings = enc_labels.transform(
 )
 enc_test_task_encodings = enc_tasks.transform(data_df_test["task_id"].tolist())
 
-data_df_train["enc_label_id"] = enc_train_label_encodings
-data_df_train["enc_task_id"] = enc_train_task_encodings
+train_dataframe["enc_label_id"] = enc_train_label_encodings
+train_dataframe["enc_task_id"] = enc_train_task_encodings
+valid_dataframe["enc_label_id"] = enc_valid_label_encodings
+valid_dataframe["enc_task_id"] = enc_valid_task_encodings
 data_df_test["enc_label_id"] = enc_test_label_encodings
 data_df_test["enc_task_id"] = enc_test_task_encodings
 
@@ -231,12 +244,21 @@ data_df_test["enc_task_id"] = enc_test_task_encodings
 ###-------------------------------------------------------------------------------------------------------------------
 
 train_dataset = TensorDataset(
-    torch.tensor(np.array(data_df_train["mat"].tolist()).astype(np.float32)),
-    torch.tensor(data_df_train["enc_label_id"].to_numpy()),
-    torch.tensor(data_df_train["enc_task_id"].to_numpy()),
+    torch.tensor(np.array(train_dataframe["mat"].tolist()).astype(np.float32)),
+    torch.tensor(train_dataframe["enc_label_id"].to_numpy()),
+    torch.tensor(train_dataframe["enc_task_id"].to_numpy()),
 )
 train_loader = DataLoader(
     train_dataset, batch_size=config["batch_size"], shuffle=True
+)
+
+valid_dataset = TensorDataset(
+    torch.tensor(np.array(valid_dataframe["mat"].tolist()).astype(np.float32)),
+    torch.tensor(valid_dataframe["enc_label_id"].to_numpy()),
+    torch.tensor(valid_dataframe["enc_task_id"].to_numpy()),
+)
+valid_loader = DataLoader(
+    valid_dataset, batch_size=config["batch_size"], shuffle=True
 )
 
 test_dataset = TensorDataset(
@@ -289,7 +311,7 @@ training_loop(
     config["epochs"],
     model,
     train_loader,
-    test_loader,
+    valid_loader,
     criterion,
     optimizer,
     device,
