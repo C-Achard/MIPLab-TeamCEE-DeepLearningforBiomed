@@ -164,7 +164,7 @@ def training_loop_nested_cross_validation(
                     num_heads=num_heads,
                     dropout=dropout,
                     attention_dropout=attention_dropout,
-                )
+                ).to(device)
 
                 optimizer = torch.optim.AdamW(
                     model.parameters(), lr=learning_rate
@@ -224,7 +224,7 @@ def training_loop_nested_cross_validation(
             num_heads=num_heads,
             dropout=dropout,
             attention_dropout=attention_dropout,
-        )
+        ).to(device)
 
         optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
