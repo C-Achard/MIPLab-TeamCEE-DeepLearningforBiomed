@@ -239,14 +239,12 @@ def training_loop_nested_cross_validation(
             config,
         )
 
-        # return
         total_loss_for_optimized_model_parameters.append(
             np.mean(history["val-loss_total"][-10:])
         )
         all_optimal_model_parameters.append(optimal_model_parameters)
 
-        return (
-            total_loss_for_optimized_model_parameters,
-            all_optimal_model_parameters,
-        )
-    return None
+    return (
+        total_loss_for_optimized_model_parameters,
+        all_optimal_model_parameters,
+    )

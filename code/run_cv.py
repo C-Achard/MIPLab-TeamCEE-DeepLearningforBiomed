@@ -7,6 +7,7 @@ import itertools
 from collections import Counter
 from pathlib import Path
 
+import numpy as np
 import torch
 import torch.nn as nn
 from cross_validation import training_loop_nested_cross_validation
@@ -24,30 +25,6 @@ DATA_PATH = str(DATA_PATH)
 #
 # %load_ext autoreload
 # %autoreload 2
-
-#
-###-------------------------------------------------------------------------------------------------------------------
-#         hyperparameters
-###-------------------------------------------------------------------------------------------------------------------
-
-config = {
-    # general
-    "epochs": 100,
-    "batch_size": 4,
-    "lr": 1e-3,
-    # model
-    "d_model_input": 400,
-    "d_model_intermediate": 512,
-    "d_model_task_output": 8,
-    "d_model_fingerprint_output": None,  # needs to be determined from data
-    "dropout": 0.1,
-    "attention_dropout": 0.1,
-    "num_heads": 4,
-    "num_layers": 0,  # TBA?
-    # optimizer
-    "lambda_si": 0.5,
-    "lambda_td": 0.5,
-}
 
 #
 ###-------------------------------------------------------------------------------------------------------------------
@@ -158,7 +135,7 @@ IDs = [
 ###-------------------------------------------------------------------------------------------------------------------
 
 # data_dict_train, data_dict_test = get_dict_raw_data(DATA_PATH, IDs[0:3])
-data_df_train, data_df_test = get_df_raw_data(DATA_PATH, IDs[:10])
+data_df_train, data_df_test = get_df_raw_data(DATA_PATH, IDs[:])
 
 NUM_SUBJECTS = len(data_df_train["subject_id"].unique())
 print(f"Number of subjects: {NUM_SUBJECTS}")
@@ -223,23 +200,23 @@ criterion = nn.CrossEntropyLoss()
 #         hyperparameter combinations
 ###-------------------------------------------------------------------------------------------------------------------
 
-dropout = [0.2, 0.5]  # , 0.8]
-attention_dropout = [0.2, 0.5]  # , 0.8]
-num_heads = [2, 4]  # ,8]
-learning_rate = [1e-3]  # , 1e-2, 1e-4]
+dropout = [0.2, 0.5, 0.8]
+attention_dropout = [0.2, 0.5, 0.8]
+num_heads = [2, 4, 8]
+learning_rate = [1e-3, 1e-2, 1e-4]
 
 k_inner = 2
 k_outer = 2
 
 config = {
     # general
-    "epochs": 2,
+    "epochs": 20,
     "batch_size": 4,
     # optimizer
     "lambda_si": 0.5,
     "lambda_td": 0.5,
-    "k_inner": 2,
-    "k_outer": 2,
+    "k_inner": 5,
+    "k_outer": 5,
     "num_subjects": NUM_SUBJECTS,
     "d_model_input": 400,
 }
@@ -259,6 +236,17 @@ criterion = nn.CrossEntropyLoss()
 )
 
 counter = Counter(all_optimal_model_parameters)
-print(total_loss_for_optimized_model_parameters)
-print(all_optimal_model_parameters)
+
+most_freq_best_parameters = max(counter, key=counter.get)
+best_parameter_indices = [
+    i
+    for i, x in enumerate(all_optimal_model_parameters)
+    if x == most_freq_best_parameters
+]
+mean_loss_of_best_parameters = np.mean(
+    total_loss_for_optimized_model_parameters[best_parameter_indices]
+)
+
 print(counter)
+print(most_freq_best_parameters)
+print(mean_loss_of_best_parameters)
