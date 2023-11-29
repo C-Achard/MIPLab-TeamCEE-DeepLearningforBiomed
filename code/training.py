@@ -29,7 +29,7 @@ def balanced_data_shuffle(dataset_dataframe, test_size=0.2):
     train_subjects, test_subjects = train_test_split(
         dataset_dataframe,
         test_size=test_size,
-        stratify=dataset_dataframe["task_id"],
+        stratify=dataset_dataframe["task"],
     )
     # find if subjects are present only in the test set
     test_only_subjects = test_subjects[
