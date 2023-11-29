@@ -191,20 +191,18 @@ enc_labels = LabelEncoder()
 enc_tasks = LabelEncoder()
 
 enc_labels.fit(data_df_train["subject_id"].tolist())
-enc_tasks.fit(data_df_train["task_id"].tolist())
+enc_tasks.fit(data_df_train["task"].tolist())
 
 enc_train_label_encodings = enc_labels.transform(
     data_df_train["subject_id"].tolist()
 )
-enc_train_task_encodings = enc_tasks.transform(
-    data_df_train["task_id"].tolist()
-)
+enc_train_task_encodings = enc_tasks.transform(data_df_train["task"].tolist())
 
 
 enc_test_label_encodings = enc_labels.transform(
     data_df_test["subject_id"].tolist()
 )
-enc_test_task_encodings = enc_tasks.transform(data_df_test["task_id"].tolist())
+enc_test_task_encodings = enc_tasks.transform(data_df_test["task"].tolist())
 
 data_df_train["enc_subject_id"] = enc_train_label_encodings
 data_df_train["enc_task_id"] = enc_train_task_encodings
