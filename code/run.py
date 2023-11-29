@@ -199,39 +199,39 @@ enc_labels = LabelEncoder()
 enc_tasks = LabelEncoder()
 
 enc_labels.fit(train_dataframe["subject_id"].tolist())
-enc_tasks.fit(train_dataframe["task_id"].tolist())
+enc_tasks.fit(train_dataframe["task"].tolist())
 
 enc_train_label_encodings = enc_labels.transform(
     train_dataframe["subject_id"].tolist()
 )
 enc_train_task_encodings = enc_tasks.transform(
     train_dataframe[
-        "task_id"
+        "task"
     ].tolist()  
 )
 enc_labels.fit(valid_dataframe["subject_id"].tolist())
-enc_tasks.fit(valid_dataframe["task_id"].tolist())
+enc_tasks.fit(valid_dataframe["task"].tolist())
 
 enc_valid_label_encodings = enc_labels.transform(
     valid_dataframe["subject_id"].tolist()
 )
 enc_valid_task_encodings = enc_tasks.transform(
     valid_dataframe[
-        "task_id"
+        "task"
     ].tolist()  
 )
 
 enc_test_label_encodings = enc_labels.transform(
     data_df_test["subject_id"].tolist()
 )
-enc_test_task_encodings = enc_tasks.transform(data_df_test["task_id"].tolist())
+enc_test_task_encodings = enc_tasks.transform(data_df_test["task"].tolist())
 
 train_dataframe["enc_label_id"] = enc_train_label_encodings
-train_dataframe["enc_task_id"] = enc_train_task_encodings
+train_dataframe["enc_task"] = enc_train_task_encodings
 valid_dataframe["enc_label_id"] = enc_valid_label_encodings
-valid_dataframe["enc_task_id"] = enc_valid_task_encodings
+valid_dataframe["enc_task"] = enc_valid_task_encodings
 data_df_test["enc_label_id"] = enc_test_label_encodings
-data_df_test["enc_task_id"] = enc_test_task_encodings
+data_df_test["enc_task"] = enc_test_task_encodings
 
 # enc.inverse_transform() to reverse
 
@@ -246,7 +246,7 @@ data_df_test["enc_task_id"] = enc_test_task_encodings
 train_dataset = TensorDataset(
     torch.tensor(np.array(train_dataframe["mat"].tolist()).astype(np.float32)),
     torch.tensor(train_dataframe["enc_label_id"].to_numpy()),
-    torch.tensor(train_dataframe["enc_task_id"].to_numpy()),
+    torch.tensor(train_dataframe["enc_task"].to_numpy()),
 )
 train_loader = DataLoader(
     train_dataset, batch_size=config["batch_size"], shuffle=True
@@ -255,7 +255,7 @@ train_loader = DataLoader(
 valid_dataset = TensorDataset(
     torch.tensor(np.array(valid_dataframe["mat"].tolist()).astype(np.float32)),
     torch.tensor(valid_dataframe["enc_label_id"].to_numpy()),
-    torch.tensor(valid_dataframe["enc_task_id"].to_numpy()),
+    torch.tensor(valid_dataframe["enc_task"].to_numpy()),
 )
 valid_loader = DataLoader(
     valid_dataset, batch_size=config["batch_size"], shuffle=True
@@ -264,7 +264,7 @@ valid_loader = DataLoader(
 test_dataset = TensorDataset(
     torch.tensor(np.array(data_df_test["mat"].tolist()).astype(np.float32)),
     torch.tensor(data_df_test["enc_label_id"].to_numpy()),
-    torch.tensor(data_df_test["enc_task_id"].to_numpy()),
+    torch.tensor(data_df_test["enc_task"].to_numpy()),
 )
 test_loader = DataLoader(
     test_dataset, batch_size=config["batch_size"], shuffle=False
