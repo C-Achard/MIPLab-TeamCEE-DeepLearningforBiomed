@@ -9,7 +9,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from models import MRIAttentionLinear, MRIAttention, EGNNA
+from models import MRIAttentionLinear, MRIAttention, MRICustomAttention
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import DataLoader, TensorDataset
 from training import balanced_data_shuffle, training_loop
@@ -33,7 +33,7 @@ logging.basicConfig(level=logging.INFO)
 
 config = {
     # general
-    "epochs": 100,
+    "epochs": 50,
     "batch_size": 10,
     "lr": 1e-4,
     # model
@@ -48,7 +48,7 @@ config = {
     # optimizer
     "lambda_si": 0.5,
     "lambda_td": 0.5,
-    "weight_decay": 0.1,
+    "weight_decay": 0.01,
 }
 
 #
@@ -61,7 +61,7 @@ IDs = [
     117122,
     131722,
     153025,
-    # 211720,
+    211720,
     100408,
     118528,
     133019,
@@ -136,7 +136,7 @@ IDs = [
     128632,
     149539,
     198451,
-    # 756055,
+    756055,
     113922,
     129028,
     149741,
@@ -164,42 +164,15 @@ data_df_train, data_df_test = get_df_raw_data(DATA_PATH, IDs[:])
 train_dataframe, valid_dataframe = balanced_data_shuffle(
     data_df_train, test_size=0.2
 )
-# display(data_df_train.head(10))
-
-#
 NUM_SUBJECTS = len(data_df_train["subject_id"].unique())
-# print(f"Number of subjects: {NUM_SUBJECTS}")
+print(f"Number of subjects: {NUM_SUBJECTS}")
+NUM_TASKS = data_df_train["task"].nunique()
+print(f"Number of tasks: {NUM_TASKS}")
 
 #
 ###-------------------------------------------------------------------------------------------------------------------
 #         label encoding
 ###-------------------------------------------------------------------------------------------------------------------
-
-# one hot encoding
-
-# enc_labels = OneHotEncoder(handle_unknown='ignore')
-# enc_tasks = OneHotEncoder(handle_unknown='ignore')
-
-# enc_labels.fit(data_dict_train["subject_id"].to_numpy().reshape(-1, 1))
-# enc_tasks.fit(data_dict_train["task_id"].to_numpy().reshape(-1, 1))
-
-# enc_train_label_encodings = enc_labels.transform(data_dict_train["subject_id"].to_numpy().reshape(-1, 1)).toarray()
-# enc_train_task_encodings = enc_tasks.transform(data_dict_train["task_id"].to_numpy().reshape(-1, 1)).toarray()
-
-# enc_test_label_encodings = enc_labels.transform(data_dict_test["subject_id"].to_numpy().reshape(-1, 1)).toarray()
-# enc_test_task_encodings = enc_tasks.transform(data_dict_test["task_id"].to_numpy().reshape(-1, 1)).toarray()
-
-# data_dict_train["enc_label_id"] = enc_train_label_encodings.tolist()
-# data_dict_train["enc_task_id"] = enc_train_task_encodings.tolist()
-
-# data_dict_test["enc_label_id"] = enc_test_label_encodings.tolist()
-# data_dict_test["enc_task_id"] = enc_test_task_encodings.tolist()
-
-# in the task column, there is a duplicate label for REST1-2 task
-data_df_train["task_id"] = data_df_train["task_id"].replace("REST2", "REST1")
-data_df_test["task_id"] = data_df_test["task_id"].replace("REST2", "REST1")
-
-# label encoding
 enc_labels = LabelEncoder()
 enc_tasks = LabelEncoder()
 
@@ -282,24 +255,20 @@ device = device_list[-1]
 # device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
 
-NUM_TASKS = data_df_train["enc_task_id"].nunique()
-print(f"Number of tasks: {NUM_TASKS}")
-print(f"Number of subjects: {NUM_SUBJECTS}")
-
-model = MRIAttention(
-    # output_size_tasks = config["d_model_task_output"],
-    output_size_tasks=NUM_TASKS,
-    output_size_subjects=NUM_SUBJECTS,
-    input_size=config["d_model_input"],
-    attention_dropout=config["attention_dropout"],
-    num_heads=config["num_heads"],
-).to(device)
-# model = EGNNA(
-#     output_size_subjects=NUM_SUBJECTS,
+# model = MRIAttention(
+#     # output_size_tasks = config["d_model_task_output"],
 #     output_size_tasks=NUM_TASKS,
+#     output_size_subjects=NUM_SUBJECTS,
 #     input_size=config["d_model_input"],
 #     attention_dropout=config["attention_dropout"],
+#     num_heads=config["num_heads"],
 # ).to(device)
+model = MRICustomAttention(
+    output_size_subjects=NUM_SUBJECTS,
+    output_size_tasks=NUM_TASKS,
+    input_size=config["d_model_input"],
+    attention_dropout=config["attention_dropout"],
+).to(device)
 
 # x = torch.randn(1, 400, 400)
 # y = model(x.to(device))
@@ -335,4 +304,8 @@ training_loop(
     device,
     config,
     # scheduler=scheduler,
+    save_model=False,
+    save_attention_weights=True,
+    test_loader=test_loader
 )
+

@@ -90,6 +90,9 @@ def training_loop(
     device,
     config,
     scheduler=None,
+    test_loader=None,
+    save_model=False,
+    save_attention_weights=False,
 ):
     """Training loop."""
     history = {
@@ -119,7 +122,7 @@ def training_loop(
     for epoch in range(1, epochs + 1):
         start_epoch = time.time()
         loss_si, train_loss_td, total_loss, acc_si, acc_td = 0, 0, 0, 0, 0
-
+        final_epoch_attention_weights = []
         # Training
         model.train()
         for _i, batch in enumerate(train_loader):
@@ -130,6 +133,8 @@ def training_loop(
             task_target_ids = batch[2].to(device)
 
             logits_si, logits_td, attention_weights = model(p_matrix)
+            if save_attention_weights and epoch == epochs:
+                final_epoch_attention_weights.append(attention_weights)
             
             # create heatmap from attention weights and log to wandb
             if WANDB_AVAILABLE:
@@ -298,6 +303,43 @@ def training_loop(
             + f" - val-acc: SI {val_acc_si:.2f}% / TD {val_acc_td:.2f}%"
             + f" - ({time.time()-start_epoch:.2f}s/epoch)"
         )
+        
+    if test_loader is not None:
+        (
+            test_loss_total,
+            test_loss_si,
+            test_loss_td,
+            test_acc_si,
+            test_acc_td,
+        ) = evaluate(model, test_loader, criterion, device, config)
+        print("_"*30)
+        print(
+            f"Final test loss: {test_loss_total:.4f} - acc: SI {test_acc_si:.2f}% / TD {test_acc_td:.2f}%"
+        )
+        print("_"*30)
+        if WANDB_AVAILABLE:
+            wb.log(
+                {
+                    "Test/loss_si": test_loss_si,
+                    "Test/loss_td": test_loss_td,
+                    "Test/total_loss": test_loss_total,
+                    "Test/acc_si": test_acc_si,
+                    "Test/acc_td": test_acc_td,
+                }
+            )
+        
+    if save_model:
+        torch.save(model.state_dict(), "model.pth")
+        if WANDB_AVAILABLE:
+            wb.save("model.pth")
+    if save_attention_weights:
+        if not len(final_epoch_attention_weights):
+            print("No attention weights saved, as there are none to save.")
+        final_epoch_attention_weights = np.array([w.detach().cpu().numpy() for w in final_epoch_attention_weights])
+        np.save("attention_weights.npy", final_epoch_attention_weights)
+        if WANDB_AVAILABLE:
+            wb.save("attention_weights.npy")
+        
     print("Finished Training.")
     return history
 
