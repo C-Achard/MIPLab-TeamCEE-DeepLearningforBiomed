@@ -6,7 +6,6 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from sklearn.metrics import accuracy_score
-from sklearn.model_selection import train_test_split
 import seaborn as sns
 
 try:
@@ -21,63 +20,7 @@ logging.basicConfig(level=logging.DEBUG)
 # logging.basicConfig(level=logging.INFO)
 
 
-def balanced_data_shuffle(dataset_dataframe, val_frac=0.2, stratify=True):
-    """Shuffle and stratify the data by task, so that each task is represented equally in the train and test sets.
 
-    Also ensures no subject is present only in the test set.
-    If this is the case, half of the tasks of this subject are moved to the train set.
-    """
-    train_subjects, test_subjects = train_test_split(
-        dataset_dataframe,
-        test_size=val_frac,
-        stratify=dataset_dataframe["task"] if stratify else None,
-    )
-    # find if subjects are present only in the test set
-    test_only_subjects = test_subjects[
-        ~test_subjects["subject_id"].isin(train_subjects["subject_id"])
-    ]
-    if len(test_only_subjects) > 0:
-        print(
-            f"Found {len(test_only_subjects['subject_id'].unique())} subjects present only in the test set"
-        )
-        # if there are subjects present only in the test set, move half of their tasks to the train set
-        for subject in test_only_subjects["subject_id"].unique():
-            subject_tasks = test_subjects[
-                test_subjects["subject_id"] == subject
-            ].sample(frac=0.5)
-            train_subjects = train_subjects.append(subject_tasks)
-            test_subjects = test_subjects.drop(subject_tasks.index)
-            print(
-                f"Moved {len(subject_tasks)} tasks from subject {subject} to the train set"
-            )
-    return train_subjects, test_subjects
-
-
-def balanced_data_shuffle_cv(train_subjects, test_subjects):
-    """Shuffle and stratify the data by task, so that each task is represented equally in the train and test sets.
-
-    Also ensures no subject is present only in the test set.
-    If this is the case, half of the tasks of this subject are moved to the train set.
-    """
-    # find if subjects are present only in the test set
-    test_only_subjects = test_subjects[
-        ~test_subjects["enc_subject_id"].isin(train_subjects["enc_subject_id"])
-    ]
-    if len(test_only_subjects) > 0:
-        print(
-            f"Found {len(test_only_subjects['enc_subject_id'].unique())} subjects present only in the test set"
-        )
-        # if there are subjects present only in the test set, move half of their tasks to the train set
-        for subject in test_only_subjects["enc_subject_id"].unique():
-            subject_tasks = test_subjects[
-                test_subjects["enc_subject_id"] == subject
-            ].sample(frac=0.5)
-            train_subjects = train_subjects.append(subject_tasks)
-            test_subjects = test_subjects.drop(subject_tasks.index)
-            print(
-                f"Moved {len(subject_tasks)} tasks from subject {subject} to the train set"
-            )
-    return train_subjects, test_subjects
 
 
 def training_loop(
@@ -151,36 +94,18 @@ def training_loop(
                         cbar=False
                     )
                     wb.log({"Att/attention_weights": wb.Image(heatmap_att)})
-                    heatmap_att_output = sns.heatmap(
-                        np.mean(
-                            torch.matmul(attention_weights, p_matrix).squeeze().detach().cpu().numpy(),
-                            axis=0
-                        ),
-                        annot=False,
-                        cmap="turbo",
-                        xticklabels=False,
-                        yticklabels=False,
-                        cbar=False
-                    )
-                    wb.log({"Att/attention_output": wb.Image(heatmap_att_output)})
-                    # wb.log({"Att/attention_weights": wb.plots.HeatMap(
-                    #     x_labels=[f"p{i}" for i in range(1, 401)],
-                    #     y_labels=[f"p{i}" for i in range(1, 401)],
-                    #     matrix_values=np.mean(
-                    #         attention_weights.squeeze().detach().cpu().numpy(),
-                    #         axis=0
-                    #         ),
-                    #     show_text=False
-                    # )})
-                    # wb.log({"Att/attention_output": wb.plots.HeatMap(
-                    #     x_labels=[f"p{i}" for i in range(1, 401)],
-                    #     y_labels=[f"p{i}" for i in range(1, 401)],
-                    #     matrix_values=np.mean(
+                    # heatmap_att_output = sns.heatmap(
+                    #     np.mean(
                     #         torch.matmul(attention_weights, p_matrix).squeeze().detach().cpu().numpy(),
                     #         axis=0
-                    #         ),
-                    #     show_text=False
-                    # )})
+                    #     ),
+                    #     annot=False,
+                    #     cmap="turbo",
+                    #     xticklabels=False,
+                    #     yticklabels=False,
+                    #     cbar=False
+                    # )
+                    # wb.log({"Att/attention_output": wb.Image(heatmap_att_output)})
 
             loss_si_c = criterion(
                 logits_si, label_target_ids.long()

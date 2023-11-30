@@ -8,12 +8,13 @@ import logging
 import numpy as np
 import torch
 import torch.nn as nn
+from os import environ
 
 from models import MRIAttentionLinear, MRIAttention, MRICustomAttention
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import DataLoader, TensorDataset
-from training import balanced_data_shuffle, training_loop
-from utils import get_df_raw_data
+from training import training_loop
+from utils import get_df_raw_data, balanced_data_shuffle
 
 ## Data path ##
 DATA_PATH = (Path.cwd().parent / "DATA").resolve()  # TODO : adapt to server
@@ -26,6 +27,13 @@ logging.basicConfig(level=logging.INFO)
 # %load_ext autoreload
 # %autoreload 2
 
+#set deterministic behavior
+seed = 53498298
+torch.manual_seed(seed)
+np.random.seed(seed)
+
+torch.use_deterministic_algorithms(True)
+environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 #
 ###-------------------------------------------------------------------------------------------------------------------
 #         hyperparameters
@@ -288,23 +296,23 @@ print(f"Using device: {device}")
 
 ## Self-Attention model ##
 
-model = MRIAttention(
-    # output_size_tasks = config["d_model_task_output"],
-    output_size_tasks=NUM_TASKS,
-    output_size_subjects=NUM_SUBJECTS,
-    input_size=config["d_model_input"],
-    attention_dropout=config["attention_dropout"],
-    num_heads=config["num_heads"],
-).to(device)
+# model = MRIAttention(
+#     # output_size_tasks = config["d_model_task_output"],
+#     output_size_tasks=NUM_TASKS,
+#     output_size_subjects=NUM_SUBJECTS,
+#     input_size=config["d_model_input"],
+#     attention_dropout=config["attention_dropout"],
+#     num_heads=config["num_heads"],
+# ).to(device)
 
 ## Custom EGNNA model ##
 
-# model = MRICustomAttention(
-#     output_size_subjects=NUM_SUBJECTS,
-#     output_size_tasks=NUM_TASKS,
-#     input_size=config["d_model_input"],
-#     attention_dropout=config["attention_dropout"],
-# ).to(device)
+model = MRICustomAttention(
+    output_size_subjects=NUM_SUBJECTS,
+    output_size_tasks=NUM_TASKS,
+    input_size=config["d_model_input"],
+    attention_dropout=config["attention_dropout"],
+).to(device)
 
 # x = torch.randn(1, 400, 400)
 # y = model(x.to(device))
