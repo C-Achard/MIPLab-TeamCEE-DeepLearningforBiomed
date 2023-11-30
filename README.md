@@ -42,25 +42,25 @@ Your commits will now be checked by pre-commit.
 ## Useful commands for the server
 
 * Upload on the server:
-  
+
     a) file:
    `scp filename.extension gasparID@serveraddress:filepathonserver` (ex: scp MEG84_subjects_ID.mat marcou@miplabsrv3.epfl.ch:/media/miplab-nas2/Code/Hamid_ML4Science_ALE/utils/HCP_info
-  
+
     b)  whole directory:
  `scp -r pathtothefolderonpersonalcomputer gasparID@serveraddress:filepathonserver`
 
 * Download from server
-  
+
     a) file:  `scp filename.extension gaspardID@stiitsrv21.epfl.ch:pathtodirectoryserver pathpersonalcomputer`
-  
+
     b)  whole directory:
    `scp -r gaspardID@stiitsrv21.epfl.ch:pathtodirectoryserver pathpersonalcomputer`
 
 
 * Give access to files/folder on server to other team members when created !! not forget !
-  
+
     a) file:  `chmod u=rwx,g=rwx,o=rwx filename/directoryname`
-  
+
     b) all files in a directory (from inside the directory) run as it is written, nothing to remplace:  `find . -type f -name "*.*" -exec chmod 775 {} +`
-  
+
     c) all sub-files/directories:  `chmod -R 777 directoryname`
