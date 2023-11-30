@@ -337,8 +337,8 @@ def training_loop(
             print("No attention weights saved, as there are none to save.")
         final_epoch_attention_weights = torch.cat(final_epoch_attention_weights).detach().cpu().numpy()
         np.save("attention_weights.npy", final_epoch_attention_weights)
-        if WANDB_AVAILABLE:
-            wb.save("attention_weights.npy")
+        # if WANDB_AVAILABLE:
+        #     wb.save("attention_weights.npy")
         
     print("Finished Training.")
     return history

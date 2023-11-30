@@ -107,6 +107,7 @@ class MRIAttention(nn.Module):
         num_heads=4,
         dropout=0.1,
         attention_dropout=0.1,
+        normalize=False,
     ):
         """Initialize the model.
 

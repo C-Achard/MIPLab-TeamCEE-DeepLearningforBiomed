@@ -286,20 +286,26 @@ device = device_list[-1]
 # device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
 
-# model = MRIAttention(
-#     # output_size_tasks = config["d_model_task_output"],
-#     output_size_tasks=NUM_TASKS,
-#     output_size_subjects=NUM_SUBJECTS,
-#     input_size=config["d_model_input"],
-#     attention_dropout=config["attention_dropout"],
-#     num_heads=config["num_heads"],
-# ).to(device)
-model = MRICustomAttention(
-    output_size_subjects=NUM_SUBJECTS,
+## Self-Attention model ##
+
+model = MRIAttention(
+    # output_size_tasks = config["d_model_task_output"],
     output_size_tasks=NUM_TASKS,
+    output_size_subjects=NUM_SUBJECTS,
     input_size=config["d_model_input"],
     attention_dropout=config["attention_dropout"],
+    num_heads=config["num_heads"],
+    normalize=True,
 ).to(device)
+
+## Custom EGNNA model ##
+
+# model = MRICustomAttention(
+#     output_size_subjects=NUM_SUBJECTS,
+#     output_size_tasks=NUM_TASKS,
+#     input_size=config["d_model_input"],
+#     attention_dropout=config["attention_dropout"],
+# ).to(device)
 
 # x = torch.randn(1, 400, 400)
 # y = model(x.to(device))
