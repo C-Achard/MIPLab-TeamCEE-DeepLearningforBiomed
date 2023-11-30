@@ -295,7 +295,6 @@ model = MRIAttention(
     input_size=config["d_model_input"],
     attention_dropout=config["attention_dropout"],
     num_heads=config["num_heads"],
-    normalize=True,
 ).to(device)
 
 ## Custom EGNNA model ##
