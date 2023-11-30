@@ -140,34 +140,21 @@ class MRIAttention(nn.Module):
         self.self_attention = nn.MultiheadAttention(
             input_size, num_heads, dropout=attention_dropout, batch_first=True
         )
-        self.fingerprints = nn.Linear(
-            input_size**2, intermediate_size
-        )  # needed ? could also add more
-        self.task_decoder = nn.Linear(
-            input_size**2, intermediate_size
-        )  # ditto
 
         self.fingerprints_classifier = nn.Linear(
-            intermediate_size, output_size_subjects
+            input_size**2, output_size_subjects
         )
-        self.task_classifier = nn.Linear(intermediate_size, output_size_tasks)
+        self.task_classifier = nn.Linear(input_size**2, output_size_tasks)
 
     def forward(self, x):
         """Forward pass of the model."""
         ## Attention ##
         x, attn_weights = self.self_attention(x, x, x)
-        x = nn.Dropout(self.attention_dropout)(x)
+        x = nn.Dropout(self.dropout)(x)
         ## Intermediate linear layers ##
         x = rearrange(x, "b h w -> b (h w)")
-        x_si = self.fingerprints(x)
-        x_si = nn.Dropout(self.dropout)(x_si)
-        x_td = self.task_decoder(x)
-        x_td = nn.Dropout(self.dropout)(x_td)
-        ## Classification layers ##
-        x_si = self.fingerprints_classifier(x_si)
-        x_si = nn.Dropout(self.dropout)(x_si)
-        x_td = self.task_classifier(x_td)
-        x_td = nn.Dropout(self.dropout)(x_td)
+        x_si = self.fingerprints_classifier(x)
+        x_td = self.task_classifier(x)
         return x_si, x_td, attn_weights
 
 

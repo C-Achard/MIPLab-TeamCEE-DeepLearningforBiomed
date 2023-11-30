@@ -14,7 +14,7 @@ import torch.nn as nn
 from models import MRIAttention, LinearLayer
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import DataLoader, TensorDataset
-from training import training_loop, balanced_data_shuffle
+from training import balanced_data_shuffle, training_loop
 from utils import get_df_raw_data
 
 ## Data path ##
@@ -160,10 +160,10 @@ IDs = [
 ###-------------------------------------------------------------------------------------------------------------------
 
 # data_dict_train, data_dict_test = get_dict_raw_data(DATA_PATH, IDs[0:3])
-data_df_train, data_df_test = get_df_raw_data(
-    DATA_PATH, [IDs[0],IDs[5],IDs[10]]
+data_df_train, data_df_test = get_df_raw_data(DATA_PATH, IDs[:])
+train_dataframe, valid_dataframe = balanced_data_shuffle(
+    data_df_train, test_size=0.2
 )
-train_dataframe, valid_dataframe = balanced_data_shuffle(data_df_train, test_size=0.3)
 # display(data_df_train.head(10))
 
 #
@@ -199,27 +199,21 @@ print(f"Number of subjects: {NUM_SUBJECTS}")
 enc_labels = LabelEncoder()
 enc_tasks = LabelEncoder()
 
-enc_labels.fit(train_dataframe["subject_id"].tolist())
-enc_tasks.fit(train_dataframe["task"].tolist())
+enc_labels.fit(data_df_train["subject_id"].tolist())
+enc_tasks.fit(data_df_train["task"].tolist())
 
 enc_train_label_encodings = enc_labels.transform(
     train_dataframe["subject_id"].tolist()
 )
 enc_train_task_encodings = enc_tasks.transform(
-    train_dataframe[
-        "task"
-    ].tolist()  
+    train_dataframe["task"].tolist()
 )
-enc_labels.fit(valid_dataframe["subject_id"].tolist())
-enc_tasks.fit(valid_dataframe["task"].tolist())
 
 enc_valid_label_encodings = enc_labels.transform(
     valid_dataframe["subject_id"].tolist()
 )
 enc_valid_task_encodings = enc_tasks.transform(
-    valid_dataframe[
-        "task"
-    ].tolist()  
+    valid_dataframe["task"].tolist()
 )
 
 enc_test_label_encodings = enc_labels.transform(
@@ -292,7 +286,7 @@ model = MRIAttention(
     attention_dropout=config["attention_dropout"],
 ).to(device)
 
-x = torch.randn(1, 400, 400)
+x = torch.randn(1, 400, 400).to(device)
 y = model(x)
 
 # x_si, x_td, attn_weights
