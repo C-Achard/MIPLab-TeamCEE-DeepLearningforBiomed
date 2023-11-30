@@ -298,7 +298,7 @@ model_LL = LinearLayer(
     output_size_tasks=9,
     output_size_subjects=NUM_SUBJECTS,
     input_size=config["d_model_input"],
-    #intermediate_size=[512],
+    intermediate_size=[512],
     dropout=config["dropout"],
 ).to(device)
 
@@ -312,7 +312,7 @@ optimizer = torch.optim.AdamW(model.parameters(), lr=config["lr"])
 
 training_loop(
     config["epochs"],
-    model,
+    model_LL,
     train_loader,
     valid_loader,
     criterion,
