@@ -208,6 +208,11 @@ def training_loop(
                     "Val/Epoch-acc_td": val_acc_td,
                 }
             )
+        
+        if save_model and val_acc_si > history["val-acc_si"][-1] and val_acc_td > history["val-acc_td"][-1]:
+            torch.save(model.state_dict(), "best_val_model.pth")
+            if WANDB_AVAILABLE:
+                wb.save("best_val_model.pth")
 
         # Logging
         history["epoch"] += 1
