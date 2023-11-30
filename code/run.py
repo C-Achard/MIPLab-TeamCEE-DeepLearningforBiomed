@@ -3,18 +3,18 @@
 ###-------------------------------------------------------------------------------------------------------------------
 #         imports
 ###-------------------------------------------------------------------------------------------------------------------
-from pathlib import Path
 import logging
+from os import environ
+from pathlib import Path
+
 import numpy as np
 import torch
 import torch.nn as nn
-from os import environ
-
-from models import MRIAttentionLinear, MRIAttention, MRICustomAttention
+from models import MRICustomAttention
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import DataLoader, TensorDataset
 from training import training_loop
-from utils import get_df_raw_data, balanced_data_shuffle
+from utils import balanced_data_shuffle, get_df_raw_data
 
 ## Data path ##
 DATA_PATH = (Path.cwd().parent / "DATA").resolve()  # TODO : adapt to server
@@ -27,7 +27,7 @@ logging.basicConfig(level=logging.INFO)
 # %load_ext autoreload
 # %autoreload 2
 
-#set deterministic behavior
+# set deterministic behavior
 seed = 53498298
 torch.manual_seed(seed)
 np.random.seed(seed)
@@ -176,7 +176,7 @@ data_df_train, data_df_test = get_df_raw_data(DATA_PATH, IDs[:])
 train_dataframe, valid_dataframe = balanced_data_shuffle(
     data_df_train,
     val_frac=config["validation_split"],
-    stratify=config["stratify"]
+    stratify=config["stratify"],
 )
 NUM_SUBJECTS = len(data_df_train["subject_id"].unique())
 print(f"Number of subjects: {NUM_SUBJECTS}")
@@ -221,7 +221,8 @@ data_df_test["enc_task"] = enc_test_task_encodings
 
 # enc.inverse_transform() to reverse
 
-def show_df_distribution(df):
+
+def _show_df_distribution(df):
     # print("Distribution of subjects:")
     # print(df["subject_id"].value_counts())
     # print("Distribution of tasks:")
@@ -231,21 +232,26 @@ def show_df_distribution(df):
     print("Unique subjects:", df["subject_id"].nunique())
     print("Unique tasks:", df["task"].nunique())
     print("*" * 50)
-    
+
+
 print("Train set:")
-show_df_distribution(train_dataframe)
+_show_df_distribution(train_dataframe)
 print("Validation set:")
-show_df_distribution(valid_dataframe)
+_show_df_distribution(valid_dataframe)
 print("Test set:")
-show_df_distribution(data_df_test)
+_show_df_distribution(data_df_test)
 
 print("Subjects present in train set but not in test set:")
-overlap_set = set(train_dataframe["subject_id"].unique()) - set(data_df_test["subject_id"].unique())
+overlap_set = set(train_dataframe["subject_id"].unique()) - set(
+    data_df_test["subject_id"].unique()
+)
 print(overlap_set)
 if len(overlap_set) != 0:
     print("WARNING: subjects present in train set but not in test set")
 print("Subjects present in validation set but not in train set:")
-overlap_set = set(valid_dataframe["subject_id"].unique()) - set(train_dataframe["subject_id"].unique())
+overlap_set = set(valid_dataframe["subject_id"].unique()) - set(
+    train_dataframe["subject_id"].unique()
+)
 print(overlap_set)
 if len(overlap_set) != 0:
     print("WARNING: subjects present in validation set but not in train set")
@@ -287,9 +293,7 @@ test_loader = DataLoader(
 ###-------------------------------------------------------------------------------------------------------------------
 
 # list all available torch devices
-device_list = ["cpu"] + [
-    f"cuda:{i}" for i in range(torch.cuda.device_count())
-]
+device_list = ["cpu"] + [f"cuda:{i}" for i in range(torch.cuda.device_count())]
 device = device_list[-1]
 # device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
@@ -328,15 +332,13 @@ model = MRICustomAttention(
 ###-------------------------------------------------------------------------------------------------------------------
 
 criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.AdamW(model.parameters(), lr=config["lr"],
-                              weight_decay=config["weight_decay"]
-                              )
+optimizer = torch.optim.AdamW(
+    model.parameters(), lr=config["lr"], weight_decay=config["weight_decay"]
+)
 # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
 #     optimizer, mode="min", factor=0.1, patience=2, verbose=True, min_lr=1e-8, cooldown=10, threshold=1e-4
 # )
-scheduler = torch.optim.lr_scheduler.StepLR(
-    optimizer, step_size=20, gamma=0.1
-)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
 
 training_loop(
     config["epochs"],
@@ -350,6 +352,5 @@ training_loop(
     scheduler=scheduler if config["use_scheduler"] else None,
     save_model=False,
     save_attention_weights=True,
-    test_loader=test_loader
+    test_loader=test_loader,
 )
-

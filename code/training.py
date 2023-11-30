@@ -3,10 +3,10 @@ import logging
 import time
 
 import numpy as np
+import seaborn as sns
 import torch
 import torch.nn.functional as F
 from sklearn.metrics import accuracy_score
-import seaborn as sns
 
 try:
     import wandb as wb
@@ -18,9 +18,6 @@ except ImportError:
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 # logging.basicConfig(level=logging.INFO)
-
-
-
 
 
 def training_loop(
@@ -59,7 +56,7 @@ def training_loop(
 
     if scheduler is not None:
         print("Using scheduler")
-    
+
     model.to(device)
 
     for epoch in range(1, epochs + 1):
@@ -78,34 +75,33 @@ def training_loop(
             logits_si, logits_td, attention_weights = model(p_matrix)
             if save_attention_weights and epoch == epochs:
                 final_epoch_attention_weights.append(attention_weights)
-            
+
             # create heatmap from attention weights and log to wandb
-            if WANDB_AVAILABLE:
-                if epoch % 20 == 0 and _i == 0:
-                    heatmap_att = sns.heatmap(
-                        np.mean(
-                            attention_weights.squeeze().detach().cpu().numpy(),
-                            axis=0
-                        ),
-                        annot=False,
-                        cmap="turbo",
-                        xticklabels=False,
-                        yticklabels=False,
-                        cbar=False
-                    )
-                    wb.log({"Att/attention_weights": wb.Image(heatmap_att)})
-                    # heatmap_att_output = sns.heatmap(
-                    #     np.mean(
-                    #         torch.matmul(attention_weights, p_matrix).squeeze().detach().cpu().numpy(),
-                    #         axis=0
-                    #     ),
-                    #     annot=False,
-                    #     cmap="turbo",
-                    #     xticklabels=False,
-                    #     yticklabels=False,
-                    #     cbar=False
-                    # )
-                    # wb.log({"Att/attention_output": wb.Image(heatmap_att_output)})
+            if WANDB_AVAILABLE and epoch % 20 == 0 and _i == 0:
+                heatmap_att = sns.heatmap(
+                    np.mean(
+                        attention_weights.squeeze().detach().cpu().numpy(),
+                        axis=0,
+                    ),
+                    annot=False,
+                    cmap="turbo",
+                    xticklabels=False,
+                    yticklabels=False,
+                    cbar=False,
+                )
+                wb.log({"Att/attention_weights": wb.Image(heatmap_att)})
+                # heatmap_att_output = sns.heatmap(
+                #     np.mean(
+                #         torch.matmul(attention_weights, p_matrix).squeeze().detach().cpu().numpy(),
+                #         axis=0
+                #     ),
+                #     annot=False,
+                #     cmap="turbo",
+                #     xticklabels=False,
+                #     yticklabels=False,
+                #     cbar=False
+                # )
+                # wb.log({"Att/attention_output": wb.Image(heatmap_att_output)})
 
             loss_si_c = criterion(
                 logits_si, label_target_ids.long()
@@ -162,7 +158,7 @@ def training_loop(
             scheduler.step()
             if WANDB_AVAILABLE:
                 wb.log({"LR/LR": optimizer.param_groups[0]["lr"]})
-        
+
         train_loss_total = total_loss / len(train_loader)
         train_loss_si = loss_si / len(train_loader)
         train_loss_td = train_loss_td / len(train_loader)
@@ -208,8 +204,12 @@ def training_loop(
                     "Val/Epoch-acc_td": val_acc_td,
                 }
             )
-        
-        if save_model and val_acc_si > history["val-acc_si"][-1] and val_acc_td > history["val-acc_td"][-1]:
+
+        if (
+            save_model
+            and val_acc_si > history["val-acc_si"][-1]
+            and val_acc_td > history["val-acc_td"][-1]
+        ):
             torch.save(model.state_dict(), "best_val_model.pth")
             if WANDB_AVAILABLE:
                 wb.save("best_val_model.pth")
@@ -233,7 +233,7 @@ def training_loop(
             + f" - val-acc: SI {val_acc_si:.2f}% / TD {val_acc_td:.2f}%"
             + f" - ({time.time()-start_epoch:.2f}s/epoch)"
         )
-        
+
     if test_loader is not None:
         (
             test_loss_total,
@@ -242,11 +242,11 @@ def training_loop(
             test_acc_si,
             test_acc_td,
         ) = evaluate(model, test_loader, criterion, device, config)
-        print("_"*30)
+        print("_" * 30)
         print(
             f"Final test loss: {test_loss_total:.4f} - acc: SI {test_acc_si:.2f}% / TD {test_acc_td:.2f}%"
         )
-        print("_"*30)
+        print("_" * 30)
         if WANDB_AVAILABLE:
             wb.log(
                 {
@@ -257,7 +257,7 @@ def training_loop(
                     "Test/acc_td": test_acc_td,
                 }
             )
-        
+
     if save_model:
         torch.save(model.state_dict(), "model.pth")
         if WANDB_AVAILABLE:
@@ -265,11 +265,13 @@ def training_loop(
     if save_attention_weights:
         if not len(final_epoch_attention_weights):
             print("No attention weights saved, as there are none to save.")
-        final_epoch_attention_weights = torch.cat(final_epoch_attention_weights).detach().cpu().numpy()
+        final_epoch_attention_weights = (
+            torch.cat(final_epoch_attention_weights).detach().cpu().numpy()
+        )
         np.save("attention_weights.npy", final_epoch_attention_weights)
         # if WANDB_AVAILABLE:
         #     wb.save("attention_weights.npy")
-        
+
     print("Finished Training.")
     return history
 

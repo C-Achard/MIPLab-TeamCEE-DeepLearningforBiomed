@@ -5,6 +5,7 @@ import pandas as pd
 import scipy.io as sio
 from sklearn.model_selection import train_test_split
 
+
 def get_df_raw_data(path, IDs, save_wt_path=False):
     """Returning a train and test dataframe consisting of the pre-processed MRI data and labels for all subjects.
 
@@ -76,6 +77,7 @@ def get_df_raw_data(path, IDs, save_wt_path=False):
     dataframe_test["mat"] = raw_data_test["mat"]
     # return raw_data_train, raw_data_test
     return dataframe_train, dataframe_test
+
 
 def balanced_data_shuffle(dataset_dataframe, val_frac=0.2, stratify=True):
     """Shuffle and stratify the data by task, so that each task is represented equally in the train and test sets.

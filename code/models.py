@@ -1,11 +1,10 @@
 """Models for MRI task decoding and subject fingerprinting.""."""
 import logging
-
-from einops import rearrange
-import torch
-from torch import nn
-import torch.nn.functional as F
 import math
+
+import torch
+from einops import rearrange
+from torch import nn
 
 # TODO(cyril) : see if EGNNA from Homework2 can be used here (if self-attention is not enough)
 logger = logging.getLogger(__name__)
@@ -62,28 +61,31 @@ class MRIAttentionLinear(nn.Module):
         x_td = self.task_classifier(x)
         return x_si, x_td, attn_weights
 
+
 class DotProductAttention(nn.Module):
     """Dot Product Attention module."""
+
     def __init__(self, dropout_p=0.0):
         """Initialize the module.
-        
+
         Args:
             dropout_p (float): dropout rate.
         """
         super().__init__()
         self.dropout_p = dropout_p
-        
+
     def forward(self, query, key, value):
         """Forward pass of the module.
-        
+
         Args:
             query (torch.Tensor): query matrix of size (batch, L, d_k).
             key (torch.Tensor): key matrix of size (batch, S, d_k).
             value (torch.Tensor): value matrix of size (batch, S, d_v).
-            
+
         Returns:
             torch.Tensor: output matrix of size (batch, L, d_v).
-            torch.Tensor: attention weights of size (batch, L, S)."""
+        torch.Tensor: attention weights of size (batch, L, S).
+        """
         L, S = query.size(-2), key.size(-2)
         scale_factor = 1 / math.sqrt(query.size(-1))
         attn_bias = torch.zeros(L, S, dtype=query.dtype).to(query.device)
@@ -92,9 +94,9 @@ class DotProductAttention(nn.Module):
         attn_weight += attn_bias
         attn_weight = torch.softmax(attn_weight, dim=-1)
         attn_weight = torch.dropout(attn_weight, self.dropout_p, train=True)
-        
+
         return attn_weight @ value, attn_weight
-        
+
 
 class MRIAttention(nn.Module):
     """MRI Self-Attention model."""
@@ -148,7 +150,6 @@ class MRIAttention(nn.Module):
         # x_td = nn.Dropout(self.dropout)(x_td)
         return x_si, x_td, attn_weights
 
-        
 
 class EGNNA(nn.Module):
     """Custom self-attention layer.
@@ -223,35 +224,36 @@ class EGNNA(nn.Module):
         alpha_channels = att_score * support
         logger.debug(f"alpha_channels: {alpha_channels.shape}")
 
-        alpha_channels = self.instance_norm(
-            alpha_channels
-        )
+        alpha_channels = self.instance_norm(alpha_channels)
         out = torch.bmm(alpha_channels, support)
         return self.activation(out), att_score
 
+
 class MRICustomAttention(nn.Module):
     """MRI Self-Attention model."""
-    def __init__(self,
-                    output_size_subjects,
-                    output_size_tasks=8,
-                    input_size=400,
-                    attention_dropout=0.1,
-                    ):
-            """Initialize the model.
-    
-            Args:
-                output_size_subjects (int): number of subjects to classify.
-                output_size_tasks (int): number of tasks to classify.
-                input_size (int): size of the input matrix.
-                attention_dropout (float): dropout rate for the attention layers.
-            """
-            super().__init__()
-            self.input_size = input_size
-            self.attention_dropout = attention_dropout
-            self.attention = EGNNA(input_size, input_size)
-            self.fingerprints = nn.Linear(input_size**2, output_size_subjects)
-            self.task_decoder = nn.Linear(input_size**2, output_size_tasks)
-            
+
+    def __init__(
+        self,
+        output_size_subjects,
+        output_size_tasks=8,
+        input_size=400,
+        attention_dropout=0.1,
+    ):
+        """Initialize the model.
+
+        Args:
+            output_size_subjects (int): number of subjects to classify.
+            output_size_tasks (int): number of tasks to classify.
+            input_size (int): size of the input matrix.
+            attention_dropout (float): dropout rate for the attention layers.
+        """
+        super().__init__()
+        self.input_size = input_size
+        self.attention_dropout = attention_dropout
+        self.attention = EGNNA(input_size, input_size)
+        self.fingerprints = nn.Linear(input_size**2, output_size_subjects)
+        self.task_decoder = nn.Linear(input_size**2, output_size_tasks)
+
     def forward(self, x):
         """Forward pass of the model."""
         ## Attention ##
@@ -263,6 +265,7 @@ class MRICustomAttention(nn.Module):
         x_si = self.fingerprints(x)
         x_td = self.task_decoder(x)
         return x_si, x_td, attn_weights
+
 
 if __name__ == "__main__":
     """Test the model."""
