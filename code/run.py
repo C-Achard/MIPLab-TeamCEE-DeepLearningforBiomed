@@ -33,12 +33,13 @@ logging.basicConfig(level=logging.INFO)
 
 config = {
     # data
-    "stratify": False,
+    "stratify": True,
     "validation_split": 0.1,
     # general
     "epochs": 100,
     "batch_size": 10,
     "lr": 1e-4,
+    "use_scheduler": True,
     # model
     "d_model_input": 400,
     # "d_model_intermediate": 512,
@@ -218,6 +219,7 @@ def show_df_distribution(df):
     # print("Distribution of tasks:")
     # print(df["task"].value_counts())
     # print("_"*20)
+    print("Number of samples:", len(df))
     print("Unique subjects:", df["subject_id"].nunique())
     print("Unique tasks:", df["task"].nunique())
     print("*" * 50)
@@ -332,7 +334,7 @@ training_loop(
     optimizer,
     device,
     config,
-    # scheduler=scheduler,
+    scheduler=scheduler if config["use_scheduler"] else None,
     save_model=False,
     save_attention_weights=True,
     test_loader=test_loader
