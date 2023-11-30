@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.DEBUG)
 # logging.basicConfig(level=logging.INFO)
 
 
-def balanced_data_shuffle(dataset_dataframe, test_size=0.2):
+def balanced_data_shuffle(dataset_dataframe, val_frac=0.2, stratify=True):
     """Shuffle and stratify the data by task, so that each task is represented equally in the train and test sets.
 
     Also ensures no subject is present only in the test set.
@@ -29,8 +29,8 @@ def balanced_data_shuffle(dataset_dataframe, test_size=0.2):
     """
     train_subjects, test_subjects = train_test_split(
         dataset_dataframe,
-        test_size=test_size,
-        stratify=dataset_dataframe["task"],
+        test_size=val_frac,
+        stratify=dataset_dataframe["task"] if stratify else None,
     )
     # find if subjects are present only in the test set
     test_only_subjects = test_subjects[
@@ -335,7 +335,7 @@ def training_loop(
     if save_attention_weights:
         if not len(final_epoch_attention_weights):
             print("No attention weights saved, as there are none to save.")
-        final_epoch_attention_weights = np.array([w.detach().cpu().numpy() for w in final_epoch_attention_weights])
+        final_epoch_attention_weights = torch.cat(final_epoch_attention_weights).detach().cpu().numpy()
         np.save("attention_weights.npy", final_epoch_attention_weights)
         if WANDB_AVAILABLE:
             wb.save("attention_weights.npy")

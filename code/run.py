@@ -32,8 +32,11 @@ logging.basicConfig(level=logging.INFO)
 ###-------------------------------------------------------------------------------------------------------------------
 
 config = {
+    # data
+    "stratify": False,
+    "validation_split": 0.1,
     # general
-    "epochs": 50,
+    "epochs": 100,
     "batch_size": 10,
     "lr": 1e-4,
     # model
@@ -48,7 +51,7 @@ config = {
     # optimizer
     "lambda_si": 0.5,
     "lambda_td": 0.5,
-    "weight_decay": 0.01,
+    "weight_decay": 1,
 }
 
 #
@@ -162,7 +165,9 @@ IDs = [
 # data_dict_train, data_dict_test = get_dict_raw_data(DATA_PATH, IDs[0:3])
 data_df_train, data_df_test = get_df_raw_data(DATA_PATH, IDs[:])
 train_dataframe, valid_dataframe = balanced_data_shuffle(
-    data_df_train, test_size=0.2
+    data_df_train,
+    val_frac=config["validation_split"],
+    stratify=config["stratify"]
 )
 NUM_SUBJECTS = len(data_df_train["subject_id"].unique())
 print(f"Number of subjects: {NUM_SUBJECTS}")
@@ -207,9 +212,33 @@ data_df_test["enc_task"] = enc_test_task_encodings
 
 # enc.inverse_transform() to reverse
 
-#
-# display(data_df_train.head(10))
+def show_df_distribution(df):
+    # print("Distribution of subjects:")
+    # print(df["subject_id"].value_counts())
+    # print("Distribution of tasks:")
+    # print(df["task"].value_counts())
+    # print("_"*20)
+    print("Unique subjects:", df["subject_id"].nunique())
+    print("Unique tasks:", df["task"].nunique())
+    print("*" * 50)
+    
+print("Train set:")
+show_df_distribution(train_dataframe)
+print("Validation set:")
+show_df_distribution(valid_dataframe)
+print("Test set:")
+show_df_distribution(data_df_test)
 
+print("Subjects present in train set but not in test set:")
+overlap_set = set(train_dataframe["subject_id"].unique()) - set(data_df_test["subject_id"].unique())
+print(overlap_set)
+if len(overlap_set) != 0:
+    print("WARNING: subjects present in train set but not in test set")
+print("Subjects present in validation set but not in train set:")
+overlap_set = set(valid_dataframe["subject_id"].unique()) - set(train_dataframe["subject_id"].unique())
+print(overlap_set)
+if len(overlap_set) != 0:
+    print("WARNING: subjects present in validation set but not in train set")
 #
 ###-------------------------------------------------------------------------------------------------------------------
 #         initializing dataloader objects
@@ -230,7 +259,7 @@ valid_dataset = TensorDataset(
     torch.tensor(valid_dataframe["enc_task"].to_numpy()),
 )
 valid_loader = DataLoader(
-    valid_dataset, batch_size=config["batch_size"], shuffle=True
+    valid_dataset, batch_size=config["batch_size"], shuffle=False
 )
 
 test_dataset = TensorDataset(

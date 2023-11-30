@@ -155,3 +155,4 @@ cython_debug/
 /DATA/
 /notebooks/wandb/
 /code/wandb/
+code/attention_weights.npy
