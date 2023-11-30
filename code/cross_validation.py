@@ -23,8 +23,7 @@ def training_loop_and_cross_validation(
     ###----------------------------------------------------------------------------------------------------------------
     CV = KFold(config["k_folds"], shuffle=True)
 
-    mean_total_loss = []
-    model_parameters = []
+    all_losses_each_model = np.array([])
 
     for _k, (train_index, test_index) in enumerate(
         CV.split(
@@ -77,6 +76,8 @@ def training_loop_and_cross_validation(
             val_dataset, batch_size=config["batch_size"], shuffle=False
         )
 
+        current_cv_losses_each_model = []
+
         # train all combinatorial models
         for i, properties in enumerate(model_parameter_combinations):
             print(
@@ -114,10 +115,22 @@ def training_loop_and_cross_validation(
                 config,
             )
 
-            mean_total_loss.append(np.mean(history["val-loss_total"][-10:]))
-            model_parameters.append(model_parameter_combinations)
+            current_cv_losses_each_model.append(
+                np.mean(history["val-loss_total"][-10:])
+            )
+
+        if len(all_losses_each_model) == 0:
+            all_losses_each_model = current_cv_losses_each_model
+        else:
+            all_losses_each_model = np.vstack(
+                [all_losses_each_model, current_cv_losses_each_model]
+            )
+
+    average_error_per_model = (
+        np.sum(all_losses_each_model, axis=0) / config["k_folds"]
+    )
 
     return (
-        mean_total_loss,
-        model_parameters,
+        average_error_per_model,
+        model_parameter_combinations,
     )

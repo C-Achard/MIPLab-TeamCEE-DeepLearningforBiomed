@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
-from cross_validation import training_loop_nested_cross_validation
+from cross_validation import training_loop_and_cross_validation
 from sklearn.preprocessing import LabelEncoder
 from utils import get_df_raw_data
 
@@ -17,6 +17,7 @@ from utils import get_df_raw_data
 DATA_PATH = (Path.cwd().parent / "DATA").resolve()
 print(f"Data path: {DATA_PATH}")
 DATA_PATH = str(DATA_PATH)
+# DATA_PATH = /media/miplab-nas2/Data3/Hamid/SSBCAPs/HCP100
 
 ###-------------------------------------------------------------------------------------------------------------------
 #         subject ID list
@@ -160,7 +161,7 @@ data_df_test["enc_task_id"] = enc_test_task_encodings
 #         cross validation
 ###-------------------------------------------------------------------------------------------------------------------
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 print()
 
@@ -168,7 +169,7 @@ criterion = nn.CrossEntropyLoss()
 
 config = {
     # general
-    "epochs": 30,
+    "epochs": 20,
     "batch_size": 32,
     # optimizer
     "lambda_si": 0.5,
@@ -196,7 +197,7 @@ criterion = nn.CrossEntropyLoss()
 (
     mean_total_loss,
     model_parameters,
-) = training_loop_nested_cross_validation(
+) = training_loop_and_cross_validation(
     data_df_train, criterion, device, all_model_combinations, config
 )
 
@@ -204,9 +205,9 @@ min_mean_loss_indice = np.argmin(mean_total_loss)
 min_mean_loss = mean_total_loss[min_mean_loss_indice]
 optimal_parameters = model_parameters[min_mean_loss_indice]
 
-print("Loss for each model:")
+print("Average loss across folds for each model:")
 print(mean_total_loss)
-print("Loss of best performing model:")
+print("Average loss across folds of best performing model:")
 print(min_mean_loss)
 print(
     "Optimal Hyperparameters (dropout, attention_dropout, num_heads, learning_rate):"
