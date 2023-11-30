@@ -11,16 +11,17 @@ import torch.nn as nn
 
 # import sys
 # sys.path.append("../code/")
-from models import MRIAttention
+from models import MRIAttention, LinearLayer
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import DataLoader, TensorDataset
 from training import training_loop, balanced_data_shuffle
 from utils import get_df_raw_data
 
 ## Data path ##
-DATA_PATH = (Path.cwd().parent / "DATA").resolve()  # TODO : adapt to server
+#DATA_PATH = (Path.cwd().parent / "DATA").resolve()  # TODO : adapt to server
+DATA_PATH = ("C:/Users/emy8/OneDrive/Documents/EPFL/Master/MA3/DeepLbiomed/Project/MIPLab-TeamCEE-DeepLearningforBiomed/DATA")
 print(f"Data path: {DATA_PATH}")
-DATA_PATH = str(DATA_PATH)
+#DATA_PATH = str(DATA_PATH)
 
 #
 # %load_ext autoreload
@@ -160,9 +161,9 @@ IDs = [
 
 # data_dict_train, data_dict_test = get_dict_raw_data(DATA_PATH, IDs[0:3])
 data_df_train, data_df_test = get_df_raw_data(
-    DATA_PATH, [IDs[0], IDs[5], IDs[10]]
+    DATA_PATH, [IDs[0],IDs[5],IDs[10]]
 )
-train_dataframe, valid_dataframe = balanced_data_shuffle(data_df_train, test_size=0.2)
+train_dataframe, valid_dataframe = balanced_data_shuffle(data_df_train, test_size=0.3)
 # display(data_df_train.head(10))
 
 #
@@ -298,6 +299,14 @@ y = model(x)
 print(y[0].size())
 print(y[1].size())
 print(y[2].size())
+
+model_LL = LinearLayer(
+    output_size_tasks=9,
+    output_size_subjects=NUM_SUBJECTS,
+    input_size=config["d_model_input"],
+    #intermediate_size=[512],
+    dropout=config["dropout"],
+).to(device)
 
 #
 ###-------------------------------------------------------------------------------------------------------------------
