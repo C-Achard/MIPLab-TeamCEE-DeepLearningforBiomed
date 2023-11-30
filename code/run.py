@@ -41,13 +41,13 @@ environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
 config = {
     # data
-    "stratify": True,
+    "stratify": False,
     "validation_split": 0.1,
     # general
     "epochs": 100,
     "batch_size": 10,
     "lr": 1e-4,
-    "use_scheduler": True,
+    "use_scheduler": False,
     # model
     "d_model_input": 400,
     # "d_model_intermediate": 512,
