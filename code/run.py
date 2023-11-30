@@ -285,7 +285,7 @@ model = MRIAttention(
     attention_dropout=config["attention_dropout"],
 ).to(device)
 
-x = torch.randn(1, 400, 400)
+x = torch.randn(1, 400, 400).to(device)
 y = model(x)
 
 # x_si, x_td, attn_weights
