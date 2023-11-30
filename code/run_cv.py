@@ -4,29 +4,20 @@
 #         imports
 ###-------------------------------------------------------------------------------------------------------------------
 import itertools
-from collections import Counter
 from pathlib import Path
 
 import numpy as np
 import torch
 import torch.nn as nn
 from cross_validation import training_loop_nested_cross_validation
-
-# import sys
-# sys.path.append("../code/")
 from sklearn.preprocessing import LabelEncoder
 from utils import get_df_raw_data
 
 ## Data path ##
-DATA_PATH = (Path.cwd().parent / "DATA").resolve()  # TODO : adapt to server
+DATA_PATH = (Path.cwd().parent / "DATA").resolve()
 print(f"Data path: {DATA_PATH}")
 DATA_PATH = str(DATA_PATH)
 
-#
-# %load_ext autoreload
-# %autoreload 2
-
-#
 ###-------------------------------------------------------------------------------------------------------------------
 #         subject ID list
 ###-------------------------------------------------------------------------------------------------------------------
@@ -134,7 +125,6 @@ IDs = [
 #         joining train and test dataframes from all subjects
 ###-------------------------------------------------------------------------------------------------------------------
 
-# data_dict_train, data_dict_test = get_dict_raw_data(DATA_PATH, IDs[0:3])
 data_df_train, data_df_test = get_df_raw_data(DATA_PATH, IDs[:])
 
 NUM_SUBJECTS = len(data_df_train["subject_id"].unique())
@@ -142,26 +132,6 @@ print(f"Number of subjects: {NUM_SUBJECTS}")
 ###-------------------------------------------------------------------------------------------------------------------
 #         label encoding
 ###-------------------------------------------------------------------------------------------------------------------
-
-# one hot encoding
-
-# enc_labels = OneHotEncoder(handle_unknown='ignore')
-# enc_tasks = OneHotEncoder(handle_unknown='ignore')
-
-# enc_labels.fit(data_dict_train["subject_id"].to_numpy().reshape(-1, 1))
-# enc_tasks.fit(data_dict_train["task_id"].to_numpy().reshape(-1, 1))
-
-# enc_train_label_encodings = enc_labels.transform(data_dict_train["subject_id"].to_numpy().reshape(-1, 1)).toarray()
-# enc_train_task_encodings = enc_tasks.transform(data_dict_train["task_id"].to_numpy().reshape(-1, 1)).toarray()
-
-# enc_test_label_encodings = enc_labels.transform(data_dict_test["subject_id"].to_numpy().reshape(-1, 1)).toarray()
-# enc_test_task_encodings = enc_tasks.transform(data_dict_test["task_id"].to_numpy().reshape(-1, 1)).toarray()
-
-# data_dict_train["enc_subject_id"] = enc_train_label_encodings.tolist()
-# data_dict_train["enc_task_id"] = enc_train_task_encodings.tolist()
-
-# data_dict_test["enc_subject_id"] = enc_test_label_encodings.tolist()
-# data_dict_test["enc_task_id"] = enc_test_task_encodings.tolist()
 
 # label encoding
 enc_labels = LabelEncoder()
@@ -196,57 +166,49 @@ print()
 
 criterion = nn.CrossEntropyLoss()
 
+config = {
+    # general
+    "epochs": 30,
+    "batch_size": 32,
+    # optimizer
+    "lambda_si": 0.5,
+    "lambda_td": 0.5,
+    "k_folds": 5,
+    "num_subjects": NUM_SUBJECTS,
+    "d_model_input": 400,
+}
+
 ###-------------------------------------------------------------------------------------------------------------------
 #         hyperparameter combinations
 ###-------------------------------------------------------------------------------------------------------------------
 
-dropout = [0.2, 0.5, 0.8]
-attention_dropout = [0.2, 0.5, 0.8]
+dropout = [0.3, 0.5, 0.8]
+attention_dropout = [0.3, 0.5, 0.8]
 num_heads = [2, 4, 8]
-learning_rate = [1e-3, 1e-2, 1e-4]
-
-k_inner = 2
-k_outer = 2
-
-config = {
-    # general
-    "epochs": 20,
-    "batch_size": 4,
-    # optimizer
-    "lambda_si": 0.5,
-    "lambda_td": 0.5,
-    "k_inner": 5,
-    "k_outer": 5,
-    "num_subjects": NUM_SUBJECTS,
-    "d_model_input": 400,
-}
+learning_rate = [1e-4, 1e-3, 1e-2]
 
 # Get all possible configuration combination of the parameters above
 all_model_combinations = list(
     itertools.product(dropout, attention_dropout, num_heads, learning_rate)
 )
-
 criterion = nn.CrossEntropyLoss()
 
 (
-    total_loss_for_optimized_model_parameters,
-    all_optimal_model_parameters,
+    mean_total_loss,
+    model_parameters,
 ) = training_loop_nested_cross_validation(
     data_df_train, criterion, device, all_model_combinations, config
 )
 
-counter = Counter(all_optimal_model_parameters)
+min_mean_loss_indice = np.argmin(mean_total_loss)
+min_mean_loss = mean_total_loss[min_mean_loss_indice]
+optimal_parameters = model_parameters[min_mean_loss_indice]
 
-most_freq_best_parameters = max(counter, key=counter.get)
-best_parameter_indices = [
-    i
-    for i, x in enumerate(all_optimal_model_parameters)
-    if x == most_freq_best_parameters
-]
-mean_loss_of_best_parameters = np.mean(
-    total_loss_for_optimized_model_parameters[best_parameter_indices]
+print("Loss for each model:")
+print(mean_total_loss)
+print("Loss of best performing model:")
+print(min_mean_loss)
+print(
+    "Optimal Hyperparameters (dropout, attention_dropout, num_heads, learning_rate):"
 )
-
-print(counter)
-print(most_freq_best_parameters)
-print(mean_loss_of_best_parameters)
+print(optimal_parameters)

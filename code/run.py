@@ -3,7 +3,6 @@
 ###-------------------------------------------------------------------------------------------------------------------
 #         imports
 ###-------------------------------------------------------------------------------------------------------------------
-from pathlib import Path
 
 import numpy as np
 import torch
@@ -11,17 +10,17 @@ import torch.nn as nn
 
 # import sys
 # sys.path.append("../code/")
-from models import MRIAttention, LinearLayer
+from models import LinearLayer, MRIAttention
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import DataLoader, TensorDataset
 from training import balanced_data_shuffle, training_loop
 from utils import get_df_raw_data
 
 ## Data path ##
-#DATA_PATH = (Path.cwd().parent / "DATA").resolve()  # TODO : adapt to server
-DATA_PATH = ("C:/Users/emy8/OneDrive/Documents/EPFL/Master/MA3/DeepLbiomed/Project/MIPLab-TeamCEE-DeepLearningforBiomed/DATA")
+# DATA_PATH = (Path.cwd().parent / "DATA").resolve()  # TODO : adapt to server
+DATA_PATH = "C:/Users/emy8/OneDrive/Documents/EPFL/Master/MA3/DeepLbiomed/Project/MIPLab-TeamCEE-DeepLearningforBiomed/DATA"
 print(f"Data path: {DATA_PATH}")
-#DATA_PATH = str(DATA_PATH)
+# DATA_PATH = str(DATA_PATH)
 
 #
 # %load_ext autoreload
@@ -285,14 +284,6 @@ model = MRIAttention(
     dropout=config["dropout"],
     attention_dropout=config["attention_dropout"],
 ).to(device)
-
-x = torch.randn(1, 400, 400).to(device)
-y = model(x)
-
-# x_si, x_td, attn_weights
-print(y[0].size())
-print(y[1].size())
-print(y[2].size())
 
 model_LL = LinearLayer(
     output_size_tasks=9,
