@@ -4,24 +4,25 @@ import logging
 import torch
 from einops import rearrange
 from torch import nn
-import torch.nn.functional as F
 
 # TODO(cyril) : see if EGNNA from Homework2 can be used here (if self-attention is not enough)
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 # logging.basicConfig(level=logging.INFO)
 
+
 class LinearLayer(nn.Module):
     """Linear layer with dropout and layer normalization."""
 
-    def __init__(self,
+    def __init__(
+        self,
         output_size_subjects,
         output_size_tasks=8,
         input_size=400,
-        #intermediate_size=[512],
+        # intermediate_size=[512],
         intermediate_size=None,
         dropout=0.1,
-        ):
+    ):
         """Initialize the layer.
 
         Args:
@@ -36,26 +37,24 @@ class LinearLayer(nn.Module):
         self.interm_layers_task = nn.ModuleList()
         self.input_size = input_size
         self.intermediate_size_v = intermediate_size
-        self.dropout =dropout
+        self.dropout = dropout
         self.norms = nn.ModuleList()
         self.norm_task = nn.LayerNorm(output_size_tasks)
         self.norm_subject = nn.LayerNorm(output_size_subjects)
 
         if intermediate_size is not None:
-            for i,dim in enumerate(intermediate_size):
+            for i, dim in enumerate(intermediate_size):
                 if i == 0:
-                    self.interm_layers_finger.append( 
-                        nn.Linear(input_size, dim) 
-                    ) 
-                    self.interm_layers_task.append(
-                        nn.Linear(input_size, dim)  
+                    self.interm_layers_finger.append(
+                        nn.Linear(input_size, dim)
                     )
+                    self.interm_layers_task.append(nn.Linear(input_size, dim))
                 else:
-                    self.interm_layers_finger.append( 
-                        nn.Linear(intermediate_size[i-1], dim) 
-                    ) 
+                    self.interm_layers_finger.append(
+                        nn.Linear(intermediate_size[i - 1], dim)
+                    )
                     self.interm_layers_task.append(
-                        nn.Linear(intermediate_size[i-1], dim)  
+                        nn.Linear(intermediate_size[i - 1], dim)
                     )
 
             self.fingerprints_classifier_i = nn.Linear(
@@ -71,17 +70,16 @@ class LinearLayer(nn.Module):
             self.fingerprints_classifier = nn.Linear(
                 input_size, output_size_subjects
             )
-            self.task_classifier = nn.Linear(
-                input_size, output_size_tasks
-            )
+            self.task_classifier = nn.Linear(input_size, output_size_tasks)
 
     def forward(self, x):
         """Forward pass of the layer."""
-
         if self.intermediate_size_v is not None:
-            i=0
-            for layer_task,layer_finger, norm in zip(self.interm_layers_task, self.interm_layers_finger, self.norms):
-                if i ==0:
+            i = 0
+            for layer_task, layer_finger, norm in zip(
+                self.interm_layers_task, self.interm_layers_finger, self.norms
+            ):
+                if i == 0:
                     x_si = layer_finger(x)
                     x_td = layer_task(x)
                 else:
@@ -90,30 +88,29 @@ class LinearLayer(nn.Module):
 
                 x_si = norm(x_si)
                 x_si = nn.Dropout(p=self.dropout)(x_si)
-                    
+
                 x_td = norm(x_td)
                 x_td = nn.Dropout(p=self.dropout)(x_td)
-                
-                i=1
+
+                i = 1
 
             # Classification layers
             x_si = self.fingerprints_classifier_i(x_si)
             x_td = self.task_classifier_i(x_td)
-            
+
         else:
-            
             x_si = self.fingerprints_classifier(x)
             x_td = self.task_classifier(x)
 
         x_si = self.norm_subject(x_si)
         x_si = nn.Dropout(p=self.dropout)(x_si)
 
-        x_td =  self.norm_task(x_td)
+        x_td = self.norm_task(x_td)
         x_td = nn.Dropout(p=self.dropout)(x_td)
-            
+
         # return an attention weight empty
         return x_si, x_td, []
-        
+
 
 class MRIAttention(nn.Module):
     """MRI Vision Transformers model."""
