@@ -354,4 +354,5 @@ training_loop(
     save_attention_weights=True,
     test_loader=test_loader,
     run_name=wandb_run_name,
+    use_deeplift=True,
 )

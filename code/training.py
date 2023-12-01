@@ -243,9 +243,10 @@ def training_loop(
         history["LR"].append(optimizer.param_groups[0]["lr"])
         print(
             f"Epoch: {epoch}/{epochs} - loss_total: {train_loss_total:.4f}"
-            + f" - acc: SI {train_acc_si:.2f}% / TD {train_acc_td:.2f}%"
+            + f" - acc: SI {train_acc_si:.2f}% / TD {train_acc_td:.2f}%\n"
             + f" - val-loss_total: {val_loss_total:.4f}"
             + f" - val-acc: SI {val_acc_si:.2f}% / TD {val_acc_td:.2f}%"
+            + f" - val-f1: SI {val_f1_si:.4f} / TD {val_f1_td:.4f}"
             + f" - ({time.time()-start_epoch:.2f}s/epoch)"
         )
 
@@ -257,6 +258,8 @@ def training_loop(
                 test_loss_td,
                 test_acc_si,
                 test_acc_td,
+                test_f1_si,
+                test_f1_td,
             ),
             test_labels,
             test_preds,
@@ -270,7 +273,7 @@ def training_loop(
         )
         print("_" * 30)
         print(
-            f"Final test loss: {test_loss_total:.4f} - acc: SI {test_acc_si:.2f}% / TD {test_acc_td:.2f}%"
+            f"Final test loss: {test_loss_total:.4f} - acc: SI {test_acc_si:.2f}% / TD {test_acc_td:.2f}% - f1: SI {test_f1_si:.4f} / TD {test_f1_td:.4f}"
         )
         print("_" * 30)
         if WANDB_AVAILABLE:
@@ -281,6 +284,8 @@ def training_loop(
                     "Test/total_loss": test_loss_total,
                     "Test/acc_si": test_acc_si,
                     "Test/acc_td": test_acc_td,
+                    "Test/f1_si": test_f1_si,
+                    "Test/f1_td": test_f1_td,
                 }
             )
         wb.log(
@@ -295,37 +300,40 @@ def training_loop(
         if WANDB_AVAILABLE:
             wb.save("model.pth")
 
-    if use_deeplift:
+    if save_attention_weights:
+        if not len(final_epoch_attention_weights):
+            print("No attention weights saved, as there are none to save.")
+        final_epoch_attention_weights_save = (
+            torch.cat(final_epoch_attention_weights).detach().cpu().numpy()
+        )
+        np.save("attention_weights.npy", final_epoch_attention_weights_save)
+    if use_deeplift: # MUST BE KEPT AS LAST STEP
+        final_epoch_attention_weights = torch.cat(final_epoch_attention_weights).squeeze()
         print("Running DeepLIFT")
         model.eval()
         model._deeplift_mode = "si"
         dl = DeepLift(model)
         attributions_si = dl.attribute(
-            inputs=torch.tensor(final_epoch_attention_weights, device=device),
+            inputs=final_epoch_attention_weights,
             baselines=torch.zeros_like(
-                torch.tensor(final_epoch_attention_weights, device=device)
+                final_epoch_attention_weights
             ),
             target=0,
         )
+        print("SI attributions shape : ", attributions_si.shape)
         model._deeplift_mode = "td"
         dl = DeepLift(model)
         attributions_td = dl.attribute(
-            inputs=torch.tensor(final_epoch_attention_weights, device=device),
+            inputs=final_epoch_attention_weights,
             baselines=torch.zeros_like(
-                torch.tensor(final_epoch_attention_weights, device=device)
+                final_epoch_attention_weights
             ),
-            target=range(model.output_size_tasks),
+            target=list(range(model.output_size_tasks)),
         )
+        print("TD attributions shape : ", attributions_td.shape)
         attributions = (attributions_si, attributions_td)
         with Path.open("attributions.pkl", "wb") as f:
             pickle.dump(attributions, f)
-    if save_attention_weights:
-        if not len(final_epoch_attention_weights):
-            print("No attention weights saved, as there are none to save.")
-        final_epoch_attention_weights = (
-            torch.cat(final_epoch_attention_weights).detach().cpu().numpy()
-        )
-        np.save("attention_weights.npy", final_epoch_attention_weights)
         # if WANDB_AVAILABLE:
         #     wb.save("attention_weights.npy")
 
