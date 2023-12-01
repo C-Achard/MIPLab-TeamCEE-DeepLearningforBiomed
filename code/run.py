@@ -319,7 +319,6 @@ if __name__ == "__main__":
         output_size_subjects=NUM_SUBJECTS,
         input_size=config["d_model_input"],
         attention_dropout=config["attention_dropout"],
-        post_attention_dropout=config["post_attention_dropout"],
         num_heads=config["num_heads"],
         intermediate_size=config["d_model_intermediate"],
         dropout=config["dropout"],
