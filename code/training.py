@@ -40,7 +40,7 @@ def training_loop(
     save_model=False,
     save_attention_weights=False,
     run_name=None,
-    use_deeplift=False,
+    use_deeplift=True,
     use_early_stopping=False,
 ):
     """Training loop."""
