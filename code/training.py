@@ -1,15 +1,17 @@
 """Functions for training and evaluating models."""
 import logging
+import pickle
 import time
+from pathlib import Path
 
 import numpy as np
 import seaborn as sns
 import torch
 import torch.nn.functional as F
+from captum.attr import DeepLift
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
-    multilabel_confusion_matrix,
 )
 
 try:
@@ -38,6 +40,7 @@ def training_loop(
     save_model=False,
     save_attention_weights=False,
     run_name=None,
+    use_deeplift=False,
 ):
     """Training loop."""
     history = {
@@ -81,7 +84,7 @@ def training_loop(
             task_target_ids = batch[2].to(device)
 
             logits_si, logits_td, attention_weights = model(p_matrix)
-            if save_attention_weights and epoch == epochs:
+            if epoch == epochs:
                 final_epoch_attention_weights.append(attention_weights)
 
             # create heatmap from attention weights and log to wandb
@@ -258,7 +261,12 @@ def training_loop(
             test_labels,
             test_preds,
         ) = evaluate(
-            model, test_loader, criterion, device, config, return_preds_td=True
+            model,
+            test_loader,
+            criterion,
+            device,
+            config,
+            return_preds_td=True,
         )
         print("_" * 30)
         print(
@@ -286,6 +294,31 @@ def training_loop(
         torch.save(model.state_dict(), "model.pth")
         if WANDB_AVAILABLE:
             wb.save("model.pth")
+
+    if use_deeplift:
+        print("Running DeepLIFT")
+        model.eval()
+        model._deeplift_mode = "si"
+        dl = DeepLift(model)
+        attributions_si = dl.attribute(
+            inputs=torch.tensor(final_epoch_attention_weights, device=device),
+            baselines=torch.zeros_like(
+                torch.tensor(final_epoch_attention_weights, device=device)
+            ),
+            target=0,
+        )
+        model._deeplift_mode = "td"
+        dl = DeepLift(model)
+        attributions_td = dl.attribute(
+            inputs=torch.tensor(final_epoch_attention_weights, device=device),
+            baselines=torch.zeros_like(
+                torch.tensor(final_epoch_attention_weights, device=device)
+            ),
+            target=range(model.output_size_tasks),
+        )
+        attributions = (attributions_si, attributions_td)
+        with Path.open("attributions.pkl", "wb") as f:
+            pickle.dump(attributions, f)
     if save_attention_weights:
         if not len(final_epoch_attention_weights):
             print("No attention weights saved, as there are none to save.")
@@ -300,7 +333,14 @@ def training_loop(
     return history
 
 
-def evaluate(model, loader, criterion, device, config, return_preds_td=False):
+def evaluate(
+    model,
+    loader,
+    criterion,
+    device,
+    config,
+    return_preds_td=False,
+):
     """Evaluate the model on the dataloader."""
     loss_si, loss_td, total_loss, acc_si, acc_td = 0, 0, 0, 0, 0
     f1_si, f1_td = 0, 0
@@ -316,7 +356,7 @@ def evaluate(model, loader, criterion, device, config, return_preds_td=False):
             label_target_ids = batch[1].to(device)
             task_target_ids = batch[2].to(device)
 
-            logits_si, logits_td, attention_weights = model(p_matrix)
+            logits_si, logits_td, _ = model(p_matrix)
 
             loss_si_c = criterion(logits_si, label_target_ids.long())
             loss_td_c = criterion(logits_td, task_target_ids.long())
@@ -364,6 +404,7 @@ def evaluate(model, loader, criterion, device, config, return_preds_td=False):
         val_acc_td = (acc_td / len(loader)) * 100
         val_f1_si = f1_si / len(loader)
         val_f1_td = f1_td / len(loader)
+
     if return_preds_td:
         return (
             (

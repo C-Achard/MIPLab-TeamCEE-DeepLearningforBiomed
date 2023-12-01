@@ -17,15 +17,12 @@ from training import training_loop
 from utils import balanced_data_shuffle, get_df_raw_data
 
 ## Data path ##
-DATA_PATH = (Path.cwd().parent / "DATA").resolve()  # TODO : adapt to server
+DATA_PATH = (Path.cwd().parent / "DATA").resolve()
 # DATA_PATH = Path("/media/miplab-nas2/Data3/Hamid/SSBCAPs/HCP100").resolve()
 print(f"Data path: {DATA_PATH}")
 DATA_PATH = str(DATA_PATH)
 
 logging.basicConfig(level=logging.INFO)
-#
-# %load_ext autoreload
-# %autoreload 2
 
 # set deterministic behavior
 seed = 53498298
@@ -44,7 +41,7 @@ config = {
     "stratify": True,
     "validation_split": 0.2,
     # general
-    "epochs": 20,
+    "epochs": 2,
     "batch_size": 32,
     "lr": 1e-4,
     "use_scheduler": True,
@@ -294,8 +291,7 @@ test_loader = DataLoader(
 
 # list all available torch devices
 device_list = ["cpu"] + [f"cuda:{i}" for i in range(torch.cuda.device_count())]
-device = device_list[-1]
-# device = "cuda" if torch.cuda.is_available() else "cpu"
+device = device_list[-1] if torch.cuda.is_available() else device_list[0]
 print(f"Using device: {device}")
 
 ## Self-Attention model ##

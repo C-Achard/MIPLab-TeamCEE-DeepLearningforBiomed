@@ -267,8 +267,12 @@ class MRICustomAttention(nn.Module):
         self.fingerprints = nn.Linear(intermediate_size, output_size_subjects)
         self.task_decoder = nn.Linear(intermediate_size, output_size_tasks)
 
+        self._deeplift_mode = None
+
     def forward(self, x):
         """Forward pass of the model."""
+        if self._deeplift_mode is not None:
+            return self.forward_deeplift(x)
         ## Attention ##
         x, attn_weights = self.attention(x)
         x = nn.Dropout(self.attention_dropout)(x)
@@ -282,6 +286,24 @@ class MRICustomAttention(nn.Module):
         x_si = self.fingerprints(x)
         x_td = self.task_decoder(x)
         return x_si, x_td, attn_weights
+
+    def forward_deeplift(self, x):
+        """Forward pass of the model in deeplift mode.
+
+        Uses the atention weights computed before to assess contributions separately for fingerprints and tasks.
+        """
+        x = rearrange(x, "b h w -> b (h w)")
+        x = self.intermediate(x)
+        x = nn.ReLU()(x)
+        x = self.intermediate_norm(x)
+        x = nn.Dropout(self.intermediate_dropout)(x)
+        if self._deeplift_mode == "si":
+            x = self.fingerprints(x)
+        elif self._deeplift_mode == "td":
+            x = self.task_decoder(x)
+        else:
+            raise ValueError("Invalid deeplift mode.")
+        return x
 
 
 if __name__ == "__main__":
