@@ -287,14 +287,6 @@ model = MRIAttention(
     attention_dropout=config["attention_dropout"],
 ).to(device)
 
-x = torch.randn(1, 400, 400).to(device)
-y = model(x)
-
-# x_si, x_td, attn_weights
-print(y[0].size())
-print(y[1].size())
-print(y[2].size())
-
 model_LL = LinearLayer(
     output_size_tasks=9,
     output_size_subjects=NUM_SUBJECTS,

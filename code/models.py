@@ -41,6 +41,7 @@ class LinearLayer(nn.Module):
         self.interm_layers_finger = nn.ModuleList()
         self.interm_layers_task = nn.ModuleList()
         self.intermediate_size_v = intermediate_size
+        self.dropout = dropout
         self.norms = nn.ModuleList()
 
         if intermediate_size is not None:
@@ -52,6 +53,7 @@ class LinearLayer(nn.Module):
                     self.interm_layers_task.append(
                         nn.Linear(input_size**2, dim)
                     )
+
                 else:
                     self.interm_layers_finger.append(
                         nn.Linear(intermediate_size[i - 1], dim)
