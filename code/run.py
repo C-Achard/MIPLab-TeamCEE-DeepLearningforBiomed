@@ -57,6 +57,7 @@ config = {
     "d_model_fingerprint_output": None,  # needs to be determined from data
     "dropout": 0.1,
     "attention_dropout": 0.1,
+    "post_attention_dropout": 0.1,
     "num_heads": 1,
     # "num_layers": 0,  # TBA?
     # optimizer
@@ -314,27 +315,29 @@ if __name__ == "__main__":
 
     ## Self-Attention model ##
 
-    # model = MRIAttention(
-    #     # output_size_tasks = config["d_model_task_output"],
-    #     output_size_tasks=NUM_TASKS,
-    #     output_size_subjects=NUM_SUBJECTS,
-    #     input_size=config["d_model_input"],
-    #     attention_dropout=config["attention_dropout"],
-    #     num_heads=config["num_heads"],
-    #     intermediate_size=config["d_model_intermediate"],
-    #     dropout=config["dropout"],
-    # ).to(device)
+    model = MRIAttention(
+        # output_size_tasks = config["d_model_task_output"],
+        output_size_tasks=NUM_TASKS,
+        output_size_subjects=NUM_SUBJECTS,
+        input_size=config["d_model_input"],
+        attention_dropout=config["attention_dropout"],
+        post_attention_dropout=config["post_attention_dropout"],
+        num_heads=config["num_heads"],
+        intermediate_size=config["d_model_intermediate"],
+        dropout=config["dropout"],
+    ).to(device)
 
     ## Custom EGNNA model ##
 
-    model = MRICustomAttention(
-        output_size_subjects=NUM_SUBJECTS,
-        output_size_tasks=NUM_TASKS,
-        input_size=config["d_model_input"],
-        attention_dropout=config["attention_dropout"],
-        intermediate_size=config["d_model_intermediate"],
-        intermediate_dropout=config["dropout"],
-    ).to(device)
+    if False:
+        model = MRICustomAttention(
+            output_size_subjects=NUM_SUBJECTS,
+            output_size_tasks=NUM_TASKS,
+            input_size=config["d_model_input"],
+            attention_dropout=config["attention_dropout"],
+            intermediate_size=config["d_model_intermediate"],
+            intermediate_dropout=config["dropout"],
+        ).to(device)
 
     # model_LL = LinearLayer(
     # output_size_tasks=9,

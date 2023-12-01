@@ -162,6 +162,7 @@ class MRIAttention(nn.Module):
         input_size=400,
         num_heads=4,
         attention_dropout=0.1,
+        post_attention_dropout=0.1,
         dropout=0.1,
         intermediate_size=512,
     ):
@@ -173,18 +174,20 @@ class MRIAttention(nn.Module):
             input_size (int): size of the input matrix.
             num_heads (int): number of heads in the multi-head attention.
             dropout (float): dropout rate for the intermediate layers.
-            attention_dropout (float): dropout rate for the attention layers.
+            attention_dropout (float): dropout rate for the attention layers. (on attention weights)
+            post_attention_dropout (float): dropout rate after the attention layers. (on attention output)
             intermediate_size (int): size of the intermediate linear layers output.
         """
         super().__init__()
         self.input_size = input_size
         self.num_heads = num_heads
         self.dropout = dropout
+        self.norm1 = nn.LayerNorm(input_size**2)
         self.attention_dropout = attention_dropout
+        self.post_attention_dropout = post_attention_dropout
         self.multihead_attention = nn.MultiheadAttention(
             input_size, num_heads, dropout=attention_dropout, batch_first=True
         )
-        # self.attention = DotProductAttention(dropout_p=attention_dropout)
         self.intermediate = nn.Linear(input_size**2, intermediate_size)
         self.intermediate_norm = nn.BatchNorm1d(intermediate_size)
         self.fingerprints = nn.Linear(intermediate_size, output_size_subjects)
@@ -200,12 +203,12 @@ class MRIAttention(nn.Module):
         if self._deeplift_mode is not None:
             return self.forward_deeplift(x)
         ## Attention ##
-        x, attn_weights = self.multihead_attention(x, x, x)
-        # x, attn_weights = self.attention(x, x, x)
-        x = nn.Dropout(self.attention_dropout)(x)
+        x_att, attn_weights = self.multihead_attention(x, x, x)
+        x_att = nn.Dropout(self.post_attention_dropout)(x_att)
+        x = x + x_att
+        x = self.norm1(x)
+
         logger.debug(f"multihead_attention: {x.shape}")
-        # x = F.softmax(x, dim=1)
-        # logger.debug(f"softmax: {x.shape}")
 
         x = rearrange(x, "b h w -> b (h w)")
         x = self.intermediate(x)
@@ -325,7 +328,7 @@ class MRICustomAttention(nn.Module):
     def __init__(
         self,
         output_size_subjects,
-        output_size_tasks=8,
+        output_size_tasks=9,
         input_size=400,
         attention_dropout=0.1,
         intermediate_size=512,
