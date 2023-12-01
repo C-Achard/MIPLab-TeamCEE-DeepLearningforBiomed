@@ -320,6 +320,7 @@ def training_loop(
         np.save("attention_weights.npy", final_epoch_attention_weights_save)
         
     if use_deeplift:  # MUST BE KEPT AS LAST STEP
+        attributions = []
         print("Running DeepLIFT")
         model.eval()
         model._deeplift_mode = "si"
@@ -331,19 +332,19 @@ def training_loop(
         )
         print("SI attributions shape : ", attributions_si.shape)
         model._deeplift_mode = "td"
-        dl = DeepLift(model)
-        attributions_td = dl.attribute(
-            inputs=p_matrix,
-            baselines=torch.zeros_like(p_matrix),
-            target=tuple(range(model.output_size_tasks)),
-        )
-        print("TD attributions shape : ", attributions_td.shape)
-        attributions = (
-            attributions_si.detach().cpu().numpy(), 
-            attributions_td.detach().cpu().numpy()
+        attributions.append(attributions_si.detach().cpu().numpy())
+        for i, task in enumerate(range(len(task_labels))):
+            print(f"Running DeepLIFT for task {task_labels[task]}")
+            dl = DeepLift(model)
+            attributions_td = dl.attribute(
+                inputs=p_matrix,
+                baselines=torch.zeros_like(p_matrix),
+                target=i,
             )
-        with Path("attributions.pkl").open("wb") as f:
-            pickle.dump(attributions, f)
+            print("TD attributions shape : ", attributions_td.shape)
+            attributions.append(attributions_td.detach().cpu().numpy())
+        attributions = np.stack(attributions)
+        np.save("attributions.npy", attributions)
 
     print("Finished Training.")
     return history
