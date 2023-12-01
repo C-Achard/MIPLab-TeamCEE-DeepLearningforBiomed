@@ -135,10 +135,10 @@ class MRIAttention(nn.Module):
         self.intermediate_norm = nn.BatchNorm1d(intermediate_size)
         self.fingerprints = nn.Linear(intermediate_size, output_size_subjects)
         self.task_decoder = nn.Linear(intermediate_size, output_size_tasks)
-        
+
         self.output_size_subjects = output_size_subjects
         self.output_size_tasks = output_size_tasks
-        
+
         self._deeplift_mode = None
 
     def forward(self, x):
@@ -170,6 +170,8 @@ class MRIAttention(nn.Module):
         """
         print("deeplift mode")
         print("x in", x.shape)
+        x, _ = self.multihead_attention(x, x, x)
+        x = nn.Dropout(self.attention_dropout)(x)
         x = rearrange(x, "b h w -> b (h w)")
         x = self.intermediate(x)
         x = nn.ReLU()(x)
@@ -183,6 +185,7 @@ class MRIAttention(nn.Module):
             raise ValueError("Invalid deeplift mode.")
         print("x out", x.shape)
         return x
+
 
 class EGNNA(nn.Module):
     """Custom self-attention layer.
@@ -293,7 +296,7 @@ class MRICustomAttention(nn.Module):
         self.intermediate_norm = nn.BatchNorm1d(intermediate_size)
         self.fingerprints = nn.Linear(intermediate_size, output_size_subjects)
         self.task_decoder = nn.Linear(intermediate_size, output_size_tasks)
-        
+
         self.output_size_subjects = output_size_subjects
         self.output_size_tasks = output_size_tasks
 

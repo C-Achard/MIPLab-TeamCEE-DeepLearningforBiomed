@@ -288,10 +288,23 @@ def training_loop(
                     "Test/f1_td": test_f1_td,
                 }
             )
+        task_labels = [
+            "REST1",
+            "EMOTION",
+            "GAMBLING",
+            "LANGUAGE",
+            "MOTOR",
+            "RELATIONAL",
+            "SOCIAL",
+            "WM",
+        ]
         wb.log(
             {
                 "Test/confusion_matrix": wb.plot.confusion_matrix(
-                    probs=None, y_true=test_labels, preds=test_preds
+                    probs=None,
+                    y_true=test_labels,
+                    preds=test_preds,
+                    class_names=task_labels,
                 )
             }
         )
@@ -307,28 +320,23 @@ def training_loop(
             torch.cat(final_epoch_attention_weights).detach().cpu().numpy()
         )
         np.save("attention_weights.npy", final_epoch_attention_weights_save)
-    if use_deeplift: # MUST BE KEPT AS LAST STEP
-        final_epoch_attention_weights = torch.cat(final_epoch_attention_weights).squeeze()
+    if use_deeplift:  # MUST BE KEPT AS LAST STEP
         print("Running DeepLIFT")
         model.eval()
         model._deeplift_mode = "si"
         dl = DeepLift(model)
         attributions_si = dl.attribute(
-            inputs=final_epoch_attention_weights,
-            baselines=torch.zeros_like(
-                final_epoch_attention_weights
-            ),
+            inputs=p_matrix,
+            baselines=torch.zeros_like(p_matrix),
             target=0,
         )
         print("SI attributions shape : ", attributions_si.shape)
         model._deeplift_mode = "td"
         dl = DeepLift(model)
         attributions_td = dl.attribute(
-            inputs=final_epoch_attention_weights,
-            baselines=torch.zeros_like(
-                final_epoch_attention_weights
-            ),
-            target=0,
+            inputs=p_matrix,
+            baselines=torch.zeros_like(p_matrix),
+            target=tuple(range(model.output_size_tasks)),
         )
         print("TD attributions shape : ", attributions_td.shape)
         attributions = (attributions_si, attributions_td)

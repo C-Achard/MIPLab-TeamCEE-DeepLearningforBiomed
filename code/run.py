@@ -41,7 +41,7 @@ config = {
     "stratify": True,
     "validation_split": 0.2,
     # general
-    "epochs": 50,
+    "epochs": 2,
     "batch_size": 32,
     "lr": 1e-4,
     "use_scheduler": True,
@@ -163,61 +163,6 @@ IDs = [
     857263,
 ]
 
-#
-###-------------------------------------------------------------------------------------------------------------------
-#         joining train and test dataframes from all subjects
-###-------------------------------------------------------------------------------------------------------------------
-
-# data_dict_train, data_dict_test = get_dict_raw_data(DATA_PATH, IDs[0:3])
-data_df_train, data_df_test = get_df_raw_data(DATA_PATH, IDs[:])
-train_dataframe, valid_dataframe = balanced_data_shuffle(
-    data_df_train,
-    val_frac=config["validation_split"],
-    stratify=config["stratify"],
-)
-NUM_SUBJECTS = len(data_df_train["subject_id"].unique())
-print(f"Number of subjects: {NUM_SUBJECTS}")
-NUM_TASKS = data_df_train["task"].nunique()
-print(f"Number of tasks: {NUM_TASKS}")
-
-#
-###-------------------------------------------------------------------------------------------------------------------
-#         label encoding
-###-------------------------------------------------------------------------------------------------------------------
-enc_labels = LabelEncoder()
-enc_tasks = LabelEncoder()
-
-enc_labels.fit(data_df_train["subject_id"].tolist())
-enc_tasks.fit(data_df_train["task"].tolist())
-
-enc_train_label_encodings = enc_labels.transform(
-    train_dataframe["subject_id"].tolist()
-)
-enc_train_task_encodings = enc_tasks.transform(
-    train_dataframe["task"].tolist()
-)
-
-enc_valid_label_encodings = enc_labels.transform(
-    valid_dataframe["subject_id"].tolist()
-)
-enc_valid_task_encodings = enc_tasks.transform(
-    valid_dataframe["task"].tolist()
-)
-
-enc_test_label_encodings = enc_labels.transform(
-    data_df_test["subject_id"].tolist()
-)
-enc_test_task_encodings = enc_tasks.transform(data_df_test["task"].tolist())
-
-train_dataframe["enc_label_id"] = enc_train_label_encodings
-train_dataframe["enc_task"] = enc_train_task_encodings
-valid_dataframe["enc_label_id"] = enc_valid_label_encodings
-valid_dataframe["enc_task"] = enc_valid_task_encodings
-data_df_test["enc_label_id"] = enc_test_label_encodings
-data_df_test["enc_task"] = enc_test_task_encodings
-
-# enc.inverse_transform() to reverse
-
 
 def _show_df_distribution(df):
     # print("Distribution of subjects:")
@@ -231,128 +176,200 @@ def _show_df_distribution(df):
     print("*" * 50)
 
 
-print("Train set:")
-_show_df_distribution(train_dataframe)
-print("Validation set:")
-_show_df_distribution(valid_dataframe)
-print("Test set:")
-_show_df_distribution(data_df_test)
+if __name__ == "__main__":
+    #
+    ###-------------------------------------------------------------------------------------------------------------------
+    #         joining train and test dataframes from all subjects
+    ###-------------------------------------------------------------------------------------------------------------------
 
-print("Subjects present in train set but not in test set:")
-overlap_set = set(train_dataframe["subject_id"].unique()) - set(
-    data_df_test["subject_id"].unique()
-)
-print(overlap_set)
-if len(overlap_set) != 0:
-    print("WARNING: subjects present in train set but not in test set")
-print("Subjects present in validation set but not in train set:")
-overlap_set = set(valid_dataframe["subject_id"].unique()) - set(
-    train_dataframe["subject_id"].unique()
-)
-print(overlap_set)
-if len(overlap_set) != 0:
-    print("WARNING: subjects present in validation set but not in train set")
-#
-###-------------------------------------------------------------------------------------------------------------------
-#         initializing dataloader objects
-###-------------------------------------------------------------------------------------------------------------------
+    # data_dict_train, data_dict_test = get_dict_raw_data(DATA_PATH, IDs[0:3])
+    data_df_train, data_df_test = get_df_raw_data(DATA_PATH, IDs[:])
+    train_dataframe, valid_dataframe = balanced_data_shuffle(
+        data_df_train,
+        val_frac=config["validation_split"],
+        stratify=config["stratify"],
+    )
+    NUM_SUBJECTS = len(data_df_train["subject_id"].unique())
+    print(f"Number of subjects: {NUM_SUBJECTS}")
+    NUM_TASKS = data_df_train["task"].nunique()
+    print(f"Number of tasks: {NUM_TASKS}")
 
-train_dataset = TensorDataset(
-    torch.tensor(np.array(train_dataframe["mat"].tolist()).astype(np.float32)),
-    torch.tensor(train_dataframe["enc_label_id"].to_numpy()),
-    torch.tensor(train_dataframe["enc_task"].to_numpy()),
-)
-train_loader = DataLoader(
-    train_dataset, batch_size=config["batch_size"], shuffle=True
-)
+    #
+    ###-------------------------------------------------------------------------------------------------------------------
+    #         label encoding
+    ###-------------------------------------------------------------------------------------------------------------------
+    enc_labels = LabelEncoder()
+    enc_tasks = LabelEncoder()
 
-valid_dataset = TensorDataset(
-    torch.tensor(np.array(valid_dataframe["mat"].tolist()).astype(np.float32)),
-    torch.tensor(valid_dataframe["enc_label_id"].to_numpy()),
-    torch.tensor(valid_dataframe["enc_task"].to_numpy()),
-)
-valid_loader = DataLoader(
-    valid_dataset, batch_size=config["batch_size"], shuffle=False
-)
+    enc_labels.fit(data_df_train["subject_id"].tolist())
+    enc_tasks.fit(data_df_train["task"].tolist())
 
-test_dataset = TensorDataset(
-    torch.tensor(np.array(data_df_test["mat"].tolist()).astype(np.float32)),
-    torch.tensor(data_df_test["enc_label_id"].to_numpy()),
-    torch.tensor(data_df_test["enc_task"].to_numpy()),
-)
-test_loader = DataLoader(
-    test_dataset, batch_size=config["batch_size"], shuffle=False
-)
+    enc_train_label_encodings = enc_labels.transform(
+        train_dataframe["subject_id"].tolist()
+    )
+    enc_train_task_encodings = enc_tasks.transform(
+        train_dataframe["task"].tolist()
+    )
 
-#
-###-------------------------------------------------------------------------------------------------------------------
-#         initializing model
-###-------------------------------------------------------------------------------------------------------------------
+    enc_valid_label_encodings = enc_labels.transform(
+        valid_dataframe["subject_id"].tolist()
+    )
+    enc_valid_task_encodings = enc_tasks.transform(
+        valid_dataframe["task"].tolist()
+    )
 
-# list all available torch devices
-device_list = ["cpu"] + [f"cuda:{i}" for i in range(torch.cuda.device_count())]
-device = device_list[-1] if torch.cuda.is_available() else device_list[0]
-print(f"Using device: {device}")
+    enc_test_label_encodings = enc_labels.transform(
+        data_df_test["subject_id"].tolist()
+    )
+    enc_test_task_encodings = enc_tasks.transform(
+        data_df_test["task"].tolist()
+    )
 
-## Self-Attention model ##
+    train_dataframe["enc_label_id"] = enc_train_label_encodings
+    train_dataframe["enc_task"] = enc_train_task_encodings
+    valid_dataframe["enc_label_id"] = enc_valid_label_encodings
+    valid_dataframe["enc_task"] = enc_valid_task_encodings
+    data_df_test["enc_label_id"] = enc_test_label_encodings
+    data_df_test["enc_task"] = enc_test_task_encodings
 
-# model = MRIAttention(
-#     # output_size_tasks = config["d_model_task_output"],
-#     output_size_tasks=NUM_TASKS,
-#     output_size_subjects=NUM_SUBJECTS,
-#     input_size=config["d_model_input"],
-#     attention_dropout=config["attention_dropout"],
-#     num_heads=config["num_heads"],
-#     intermediate_size=config["d_model_intermediate"],
-#     dropout=config["dropout"],
-# ).to(device)
+    # enc.inverse_transform() to reverse
 
-## Custom EGNNA model ##
+    print("Train set:")
+    _show_df_distribution(train_dataframe)
+    print("Validation set:")
+    _show_df_distribution(valid_dataframe)
+    print("Test set:")
+    _show_df_distribution(data_df_test)
 
-model = MRICustomAttention(
-    output_size_subjects=NUM_SUBJECTS,
-    output_size_tasks=NUM_TASKS,
-    input_size=config["d_model_input"],
-    attention_dropout=config["attention_dropout"],
-    intermediate_size=config["d_model_intermediate"],
-    intermediate_dropout=config["dropout"],
-).to(device)
+    print("Subjects present in train set but not in test set:")
+    overlap_set = set(train_dataframe["subject_id"].unique()) - set(
+        data_df_test["subject_id"].unique()
+    )
+    print(overlap_set)
+    if len(overlap_set) != 0:
+        print("WARNING: subjects present in train set but not in test set")
+    print("Subjects present in validation set but not in train set:")
+    overlap_set = set(valid_dataframe["subject_id"].unique()) - set(
+        train_dataframe["subject_id"].unique()
+    )
+    print(overlap_set)
+    if len(overlap_set) != 0:
+        print(
+            "WARNING: subjects present in validation set but not in train set"
+        )
+    #
+    ###-------------------------------------------------------------------------------------------------------------------
+    #         initializing dataloader objects
+    ###-------------------------------------------------------------------------------------------------------------------
 
-# x = torch.randn(1, 400, 400)
-# y = model(x.to(device))
+    train_dataset = TensorDataset(
+        torch.tensor(
+            np.array(train_dataframe["mat"].tolist()).astype(np.float32)
+        ),
+        torch.tensor(train_dataframe["enc_label_id"].to_numpy()),
+        torch.tensor(train_dataframe["enc_task"].to_numpy()),
+    )
+    train_loader = DataLoader(
+        train_dataset, batch_size=config["batch_size"], shuffle=True
+    )
 
-# x_si, x_td, attn_weights
-# print(y[0].size())
-# print(y[1].size())
-# print(y[2].size())
+    valid_dataset = TensorDataset(
+        torch.tensor(
+            np.array(valid_dataframe["mat"].tolist()).astype(np.float32)
+        ),
+        torch.tensor(valid_dataframe["enc_label_id"].to_numpy()),
+        torch.tensor(valid_dataframe["enc_task"].to_numpy()),
+    )
+    valid_loader = DataLoader(
+        valid_dataset, batch_size=config["batch_size"], shuffle=False
+    )
 
-#
-###-------------------------------------------------------------------------------------------------------------------
-#         training
-###-------------------------------------------------------------------------------------------------------------------
+    test_dataset = TensorDataset(
+        torch.tensor(
+            np.array(data_df_test["mat"].tolist()).astype(np.float32)
+        ),
+        torch.tensor(data_df_test["enc_label_id"].to_numpy()),
+        torch.tensor(data_df_test["enc_task"].to_numpy()),
+    )
+    test_loader = DataLoader(
+        test_dataset, batch_size=config["batch_size"], shuffle=False
+    )
 
-criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.AdamW(
-    model.parameters(), lr=config["lr"], weight_decay=config["weight_decay"]
-)
-# scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-#     optimizer, mode="min", factor=0.1, patience=2, verbose=True, min_lr=1e-8, cooldown=10, threshold=1e-4
-# )
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
+    #
+    ###-------------------------------------------------------------------------------------------------------------------
+    #         initializing model
+    ###-------------------------------------------------------------------------------------------------------------------
 
-training_loop(
-    config["epochs"],
-    model,
-    train_loader,
-    valid_loader,
-    criterion,
-    optimizer,
-    device,
-    config,
-    scheduler=scheduler if config["use_scheduler"] else None,
-    save_model=False,
-    save_attention_weights=True,
-    test_loader=test_loader,
-    run_name=wandb_run_name,
-    use_deeplift=True,
-)
+    # list all available torch devices
+    device_list = ["cpu"] + [
+        f"cuda:{i}" for i in range(torch.cuda.device_count())
+    ]
+    device = device_list[-1] if torch.cuda.is_available() else device_list[0]
+    print(f"Using device: {device}")
+
+    ## Self-Attention model ##
+
+    # model = MRIAttention(
+    #     # output_size_tasks = config["d_model_task_output"],
+    #     output_size_tasks=NUM_TASKS,
+    #     output_size_subjects=NUM_SUBJECTS,
+    #     input_size=config["d_model_input"],
+    #     attention_dropout=config["attention_dropout"],
+    #     num_heads=config["num_heads"],
+    #     intermediate_size=config["d_model_intermediate"],
+    #     dropout=config["dropout"],
+    # ).to(device)
+
+    ## Custom EGNNA model ##
+
+    model = MRICustomAttention(
+        output_size_subjects=NUM_SUBJECTS,
+        output_size_tasks=NUM_TASKS,
+        input_size=config["d_model_input"],
+        attention_dropout=config["attention_dropout"],
+        intermediate_size=config["d_model_intermediate"],
+        intermediate_dropout=config["dropout"],
+    ).to(device)
+
+    # x = torch.randn(1, 400, 400)
+    # y = model(x.to(device))
+
+    # x_si, x_td, attn_weights
+    # print(y[0].size())
+    # print(y[1].size())
+    # print(y[2].size())
+
+    #
+    ###-------------------------------------------------------------------------------------------------------------------
+    #         training
+    ###-------------------------------------------------------------------------------------------------------------------
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.AdamW(
+        model.parameters(),
+        lr=config["lr"],
+        weight_decay=config["weight_decay"],
+    )
+    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    #     optimizer, mode="min", factor=0.1, patience=2, verbose=True, min_lr=1e-8, cooldown=10, threshold=1e-4
+    # )
+    scheduler = torch.optim.lr_scheduler.StepLR(
+        optimizer, step_size=20, gamma=0.1
+    )
+
+    training_loop(
+        config["epochs"],
+        model,
+        train_loader,
+        valid_loader,
+        criterion,
+        optimizer,
+        device,
+        config,
+        scheduler=scheduler if config["use_scheduler"] else None,
+        save_model=False,
+        save_attention_weights=True,
+        test_loader=test_loader,
+        run_name=wandb_run_name,
+        use_deeplift=True,
+    )
