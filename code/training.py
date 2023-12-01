@@ -210,7 +210,7 @@ def training_loop(
 
         # Early stopping to avoid overfitting
         if use_early_stopping:
-            if val_loss_total < config["best_loss"]
+            if val_loss_total < config["best_loss"]:
                 config["best_loss"] = val_loss_total
                 patience = config["patience"]
             else:
