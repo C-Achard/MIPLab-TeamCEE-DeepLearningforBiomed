@@ -162,7 +162,6 @@ class MRIAttention(nn.Module):
         input_size=400,
         num_heads=4,
         attention_dropout=0.1,
-        post_attention_dropout=0.1,
         dropout=0.1,
         intermediate_size=512,
         add_and_norm=True,
@@ -176,7 +175,6 @@ class MRIAttention(nn.Module):
             num_heads (int): number of heads in the multi-head attention.
             dropout (float): dropout rate for the intermediate layers.
             attention_dropout (float): dropout rate for the attention layers. (on attention weights)
-            post_attention_dropout (float): dropout rate after the attention layers. (on attention output)
             intermediate_size (int): size of the intermediate linear layers output.
             add_and_norm (bool): whether to add and normalize the attention output.
         """
@@ -185,7 +183,6 @@ class MRIAttention(nn.Module):
         self.num_heads = num_heads
         self.dropout = dropout
         self.attention_dropout = attention_dropout
-        self.post_attention_dropout = post_attention_dropout
         self.multihead_attention = nn.MultiheadAttention(
             input_size, num_heads, dropout=attention_dropout, batch_first=True
         )
@@ -208,7 +205,6 @@ class MRIAttention(nn.Module):
             return self.forward_deeplift(x)
         ## Attention ##
         x_att, attn_weights = self.multihead_attention(x, x, x)
-        x_att = nn.Dropout(self.post_attention_dropout)(x_att)
         if self.add_and_norm:
             x = x + x_att
             x = rearrange(x, "b h w -> b (h w)")
@@ -220,8 +216,8 @@ class MRIAttention(nn.Module):
         logger.debug(f"multihead_attention: {x.shape}")
         ## Intermediate layers ##
         x = self.intermediate(x)
-        x = nn.ReLU()(x)
         x = self.intermediate_norm(x)
+        x = nn.ReLU()(x)
         x = nn.Dropout(self.dropout)(x)
         
         ## Classification layers ##
