@@ -41,7 +41,7 @@ config = {
     "stratify": True,
     "validation_split": 0.2,
     # general
-    "epochs": 2,
+    "epochs": 50,
     "batch_size": 32,
     "lr": 1e-4,
     "use_scheduler": True,

@@ -328,14 +328,12 @@ def training_loop(
             baselines=torch.zeros_like(
                 final_epoch_attention_weights
             ),
-            target=list(range(model.output_size_tasks)),
+            target=0,
         )
         print("TD attributions shape : ", attributions_td.shape)
         attributions = (attributions_si, attributions_td)
-        with Path.open("attributions.pkl", "wb") as f:
+        with Path("attributions.pkl").open("wb") as f:
             pickle.dump(attributions, f)
-        # if WANDB_AVAILABLE:
-        #     wb.save("attention_weights.npy")
 
     print("Finished Training.")
     return history
