@@ -57,9 +57,7 @@ config = {
     "d_model_fingerprint_output": None,  # needs to be determined from data
     "dropout": 0.1,
     "attention_dropout": 0.1,
-    "post_attention_dropout": 0.1,
     "num_heads": 1,
-    # "num_layers": 0,  # TBA?
     # optimizer
     "lambda_si": 0.5,
     "lambda_td": 0.5,
