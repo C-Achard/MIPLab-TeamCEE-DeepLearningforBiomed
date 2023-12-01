@@ -3,7 +3,6 @@
 ###-------------------------------------------------------------------------------------------------------------------
 #         imports
 ###-------------------------------------------------------------------------------------------------------------------
-from pathlib import Path
 
 import numpy as np
 import torch
@@ -11,17 +10,17 @@ import torch.nn as nn
 
 # import sys
 # sys.path.append("../code/")
-from models import MRIAttention, LinearLayer
+from models import LinearLayer, MRIAttention
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import DataLoader, TensorDataset
 from training import balanced_data_shuffle, training_loop
 from utils import get_df_raw_data
 
 ## Data path ##
-#DATA_PATH = (Path.cwd().parent / "DATA").resolve()  # TODO : adapt to server
-DATA_PATH = ("C:/Users/emy8/OneDrive/Documents/EPFL/Master/MA3/DeepLbiomed/Project/MIPLab-TeamCEE-DeepLearningforBiomed/DATA")
+# DATA_PATH = (Path.cwd().parent / "DATA").resolve()  # TODO : adapt to server
+DATA_PATH = "C:/Users/emy8/OneDrive/Documents/EPFL/Master/MA3/DeepLbiomed/Project/MIPLab-TeamCEE-DeepLearningforBiomed/DATA"
 print(f"Data path: {DATA_PATH}")
-#DATA_PATH = str(DATA_PATH)
+# DATA_PATH = str(DATA_PATH)
 
 #
 # %load_ext autoreload
@@ -37,6 +36,8 @@ config = {
     "epochs": 100,
     "batch_size": 4,
     "lr": 1e-3,
+    "patience": 10,
+    "best_loss": 10,
     # model
     "d_model_input": 400,
     "d_model_intermediate": 512,
@@ -298,7 +299,7 @@ model_LL = LinearLayer(
     output_size_tasks=9,
     output_size_subjects=NUM_SUBJECTS,
     input_size=config["d_model_input"],
-    intermediate_size=[512],
+    intermediate_size=[512, 322],
     dropout=config["dropout"],
 ).to(device)
 

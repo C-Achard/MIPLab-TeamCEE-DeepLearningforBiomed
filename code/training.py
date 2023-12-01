@@ -240,6 +240,16 @@ def training_loop(
             + f" - val-acc: SI {val_acc_si:.2f}% / TD {val_acc_td:.2f}%"
             + f" - ({time.time()-start_epoch:.2f}s/epoch)"
         )
+        # Early stopping to avoid overfitting
+        if val_loss_total < config["best_loss"]:
+            config["best_loss"] = val_loss_total
+            patience = config["patience"]
+        else:
+            patience -= 1
+            if patience == 0:
+                print("Early stopping")
+                break
+
     print("Finished Training.")
     return history
 
