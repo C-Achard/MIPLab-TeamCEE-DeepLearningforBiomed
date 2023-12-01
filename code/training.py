@@ -6,7 +6,11 @@ import numpy as np
 import seaborn as sns
 import torch
 import torch.nn.functional as F
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import (
+    accuracy_score,
+    f1_score,
+    multilabel_confusion_matrix,
+)
 
 try:
     import wandb as wb
@@ -196,6 +200,8 @@ def training_loop(
             val_loss_td,
             val_acc_si,
             val_acc_td,
+            val_f1_si,
+            val_f1_td,
         ) = evaluate(model, valid_loader, criterion, device, config)
 
         if WANDB_AVAILABLE:
@@ -206,13 +212,15 @@ def training_loop(
                     "Val/Epoch-total_loss": val_loss_total,
                     "Val/Epoch-acc_si": val_acc_si,
                     "Val/Epoch-acc_td": val_acc_td,
+                    "Val/Epoch-f1_si": val_f1_si,
+                    "Val/Epoch-f1_td": val_f1_td,
                 }
             )
 
         if (
             save_model
-            and val_acc_si > history["val-acc_si"][-1]
-            and val_acc_td > history["val-acc_td"][-1]
+            and val_f1_si > history["val-acc_si"][-1]
+            and val_f1_td > history["val-acc_td"][-1]
         ):
             torch.save(model.state_dict(), "best_val_model.pth")
             if WANDB_AVAILABLE:
@@ -240,12 +248,18 @@ def training_loop(
 
     if test_loader is not None:
         (
-            test_loss_total,
-            test_loss_si,
-            test_loss_td,
-            test_acc_si,
-            test_acc_td,
-        ) = evaluate(model, test_loader, criterion, device, config)
+            (
+                test_loss_total,
+                test_loss_si,
+                test_loss_td,
+                test_acc_si,
+                test_acc_td,
+            ),
+            test_labels,
+            test_preds,
+        ) = evaluate(
+            model, test_loader, criterion, device, config, return_preds_td=True
+        )
         print("_" * 30)
         print(
             f"Final test loss: {test_loss_total:.4f} - acc: SI {test_acc_si:.2f}% / TD {test_acc_td:.2f}%"
@@ -261,7 +275,13 @@ def training_loop(
                     "Test/acc_td": test_acc_td,
                 }
             )
-
+        wb.log(
+            {
+                "Test/confusion_matrix": wb.plot.confusion_matrix(
+                    probs=None, y_true=test_labels, preds=test_preds
+                )
+            }
+        )
     if save_model:
         torch.save(model.state_dict(), "model.pth")
         if WANDB_AVAILABLE:
@@ -280,10 +300,16 @@ def training_loop(
     return history
 
 
-def evaluate(model, loader, criterion, device, config):
+def evaluate(model, loader, criterion, device, config, return_preds_td=False):
     """Evaluate the model on the dataloader."""
     loss_si, loss_td, total_loss, acc_si, acc_td = 0, 0, 0, 0, 0
+    f1_si, f1_td = 0, 0
     model.eval()
+
+    if return_preds_td:
+        labels_td = []
+        preds_td = []
+
     with torch.no_grad():
         for batch in loader:
             p_matrix = batch[0].to(device)
@@ -310,15 +336,55 @@ def evaluate(model, loader, criterion, device, config):
                 y_true=label_target_ids.detach().cpu().squeeze().numpy(),
                 y_pred=np.argmax(pred_si, axis=1),
             )
+            f1_si += f1_score(
+                y_true=label_target_ids.detach().cpu().squeeze().numpy(),
+                y_pred=np.argmax(pred_si, axis=1),
+                average="macro",
+            )
             acc_td += accuracy_score(
                 y_true=task_target_ids.detach().cpu().squeeze().numpy(),
                 y_pred=np.argmax(pred_td, axis=1),
             )
+            f1_td += f1_score(
+                y_true=task_target_ids.detach().cpu().squeeze().numpy(),
+                y_pred=np.argmax(pred_td, axis=1),
+                average="macro",
+            )
+
+            if return_preds_td:
+                labels_td.append(
+                    task_target_ids.detach().cpu().squeeze().numpy()
+                )
+                preds_td.append(np.argmax(pred_td, axis=1))
 
         val_loss_total = total_loss / len(loader)
         val_loss_si = loss_si / len(loader)
         val_loss_td = loss_td / len(loader)
         val_acc_si = (acc_si / len(loader)) * 100
         val_acc_td = (acc_td / len(loader)) * 100
+        val_f1_si = f1_si / len(loader)
+        val_f1_td = f1_td / len(loader)
+    if return_preds_td:
+        return (
+            (
+                val_loss_total,
+                val_loss_si,
+                val_loss_td,
+                val_acc_si,
+                val_acc_td,
+                val_f1_si,
+                val_f1_td,
+            ),
+            np.concatenate(labels_td),
+            np.concatenate(preds_td),
+        )
 
-    return val_loss_total, val_loss_si, val_loss_td, val_acc_si, val_acc_td
+    return (
+        val_loss_total,
+        val_loss_si,
+        val_loss_td,
+        val_acc_si,
+        val_acc_td,
+        val_f1_si,
+        val_f1_td,
+    )

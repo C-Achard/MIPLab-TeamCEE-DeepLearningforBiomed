@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
-from models import MRICustomAttention, MRIAttention
+from models import MRIAttention, MRICustomAttention
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import DataLoader, TensorDataset
 from training import training_loop
@@ -38,13 +38,13 @@ environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 ###-------------------------------------------------------------------------------------------------------------------
 #         hyperparameters
 ###-------------------------------------------------------------------------------------------------------------------
-wandb_run_name = "SelfAtt intermediate layer 2048"
+wandb_run_name = "test confusion matrix"
 config = {
     # data
     "stratify": True,
     "validation_split": 0.2,
     # general
-    "epochs": 100,
+    "epochs": 20,
     "batch_size": 32,
     "lr": 1e-4,
     "use_scheduler": True,
