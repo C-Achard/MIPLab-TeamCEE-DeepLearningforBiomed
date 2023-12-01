@@ -37,13 +37,13 @@ environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 ###-------------------------------------------------------------------------------------------------------------------
 #         hyperparameters
 ###-------------------------------------------------------------------------------------------------------------------
-wandb_run_name = "test confusion matrix"
+wandb_run_name = "EGNNA add&norm 100e"
 config = {
     # data
     "stratify": True,
     "validation_split": 0.2,
     # general
-    "epochs": 25,
+    "epochs": 100,
     "batch_size": 32,
     "lr": 1e-4,
     "use_scheduler": True,
@@ -325,7 +325,6 @@ if __name__ == "__main__":
     ).to(device)
 
     ## Custom EGNNA model ##
-
 
     # model = MRICustomAttention(
     #     output_size_subjects=NUM_SUBJECTS,
