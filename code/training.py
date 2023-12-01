@@ -41,6 +41,7 @@ def training_loop(
     save_attention_weights=False,
     run_name=None,
     use_deeplift=False,
+    use_early_stopping=False,
 ):
     """Training loop."""
     history = {
@@ -208,7 +209,7 @@ def training_loop(
         ) = evaluate(model, valid_loader, criterion, device, config)
 
         # Early stopping to avoid overfitting
-        if val_loss_total < config["best_loss"]:
+        if val_loss_total < config["best_loss"] and use_early_stopping:
             config["best_loss"] = val_loss_total
             patience = config["patience"]
         else:
@@ -330,6 +331,7 @@ def training_loop(
             torch.cat(final_epoch_attention_weights).detach().cpu().numpy()
         )
         np.save("attention_weights.npy", final_epoch_attention_weights_save)
+        
     if use_deeplift:  # MUST BE KEPT AS LAST STEP
         print("Running DeepLIFT")
         model.eval()
@@ -349,7 +351,10 @@ def training_loop(
             target=tuple(range(model.output_size_tasks)),
         )
         print("TD attributions shape : ", attributions_td.shape)
-        attributions = (attributions_si, attributions_td)
+        attributions = (
+            attributions_si.detach().cpu().numpy(), 
+            attributions_td.detach().cpu().numpy()
+            )
         with Path("attributions.pkl").open("wb") as f:
             pickle.dump(attributions, f)
 

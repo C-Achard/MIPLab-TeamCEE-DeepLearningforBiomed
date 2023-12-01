@@ -43,9 +43,11 @@ config = {
     "stratify": True,
     "validation_split": 0.2,
     # general
-    "epochs": 100,
-    "batch_size": 4,
-    "lr": 1e-3,
+    "epochs": 25,
+    "batch_size": 32,
+    "lr": 1e-4,
+    "use_scheduler": True,
+    "do_early_stopping": False,
     "patience": 10,
     "best_loss": 10,
     # model
@@ -361,9 +363,6 @@ if __name__ == "__main__":
         lr=config["lr"],
         weight_decay=config["weight_decay"],
     )
-    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-    #     optimizer, mode="min", factor=0.1, patience=2, verbose=True, min_lr=1e-8, cooldown=10, threshold=1e-4
-    # )
     scheduler = torch.optim.lr_scheduler.StepLR(
         optimizer, step_size=20, gamma=0.1
     )
@@ -383,4 +382,5 @@ if __name__ == "__main__":
         test_loader=test_loader,
         run_name=wandb_run_name,
         use_deeplift=False,
+        use_early_stopping=config["do_early_stopping"],
     )
