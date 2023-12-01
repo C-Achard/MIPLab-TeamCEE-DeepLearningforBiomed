@@ -165,6 +165,7 @@ class MRIAttention(nn.Module):
         post_attention_dropout=0.1,
         dropout=0.1,
         intermediate_size=512,
+        add_and_norm=True,
     ):
         """Initialize the model.
 
@@ -177,12 +178,12 @@ class MRIAttention(nn.Module):
             attention_dropout (float): dropout rate for the attention layers. (on attention weights)
             post_attention_dropout (float): dropout rate after the attention layers. (on attention output)
             intermediate_size (int): size of the intermediate linear layers output.
+            add_and_norm (bool): whether to add and normalize the attention output.
         """
         super().__init__()
         self.input_size = input_size
         self.num_heads = num_heads
         self.dropout = dropout
-        self.norm1 = nn.BatchNorm1d(input_size**2)
         self.attention_dropout = attention_dropout
         self.post_attention_dropout = post_attention_dropout
         self.multihead_attention = nn.MultiheadAttention(
@@ -192,6 +193,9 @@ class MRIAttention(nn.Module):
         self.intermediate_norm = nn.BatchNorm1d(intermediate_size)
         self.fingerprints = nn.Linear(intermediate_size, output_size_subjects)
         self.task_decoder = nn.Linear(intermediate_size, output_size_tasks)
+
+        self.add_and_norm = add_and_norm
+        self.norm = nn.BatchNorm1d(input_size**2)
 
         self.output_size_subjects = output_size_subjects
         self.output_size_tasks = output_size_tasks
@@ -205,18 +209,21 @@ class MRIAttention(nn.Module):
         ## Attention ##
         x_att, attn_weights = self.multihead_attention(x, x, x)
         x_att = nn.Dropout(self.post_attention_dropout)(x_att)
-        x = x + x_att
+        if self.add_and_norm:
+            x = x + x_att
+            x = rearrange(x, "b h w -> b (h w)")
+            x = self.norm(x)
+        else:
+            x = x_att
+            x = rearrange(x, "b h w -> b (h w)")
 
         logger.debug(f"multihead_attention: {x.shape}")
-
-        x = rearrange(x, "b h w -> b (h w)")
-        x = self.norm1(x)
-
+        ## Intermediate layers ##
         x = self.intermediate(x)
         x = nn.ReLU()(x)
         x = self.intermediate_norm(x)
         x = nn.Dropout(self.dropout)(x)
-        # maybe here also attentino add
+        
         ## Classification layers ##
         x_si = self.fingerprints(x)
         x_td = self.task_decoder(x)
@@ -335,6 +342,7 @@ class MRICustomAttention(nn.Module):
         attention_dropout=0.1,
         intermediate_size=512,
         intermediate_dropout=0.1,
+        add_and_norm=True,
     ):
         """Initialize the model.
 
@@ -345,6 +353,7 @@ class MRICustomAttention(nn.Module):
             attention_dropout (float): dropout rate for the attention layers.
             intermediate_size (int): size of the intermediate linear layers output.
             intermediate_dropout (float): dropout rate for the intermediate layers.
+            add_and_norm (bool): whether to add and normalize the attention output.
         """
         super().__init__()
         self.input_size = input_size
@@ -355,6 +364,9 @@ class MRICustomAttention(nn.Module):
         self.intermediate_norm = nn.BatchNorm1d(intermediate_size)
         self.fingerprints = nn.Linear(intermediate_size, output_size_subjects)
         self.task_decoder = nn.Linear(intermediate_size, output_size_tasks)
+        
+        self.add_and_norm = add_and_norm
+        self.norm = nn.BatchNorm1d(input_size**2)
 
         self.output_size_subjects = output_size_subjects
         self.output_size_tasks = output_size_tasks
@@ -366,10 +378,17 @@ class MRICustomAttention(nn.Module):
         if self._deeplift_mode is not None:
             return self.forward_deeplift(x)
         ## Attention ##
-        x, attn_weights = self.attention(x)
-        x = nn.Dropout(self.attention_dropout)(x)
+        x_att, attn_weights = self.attention(x)
+        x_att = nn.Dropout(self.attention_dropout)(x_att)
 
-        x = rearrange(x, "b h w -> b (h w)")
+        if self.add_and_norm:
+            x = x + x_att
+            x = rearrange(x, "b h w -> b (h w)")
+            x = self.norm(x)
+        else:
+            x = x_att
+            x = rearrange(x, "b h w -> b (h w)")
+            
         x = self.intermediate(x)
         x = nn.ReLU()(x)
         x = self.intermediate_norm(x)
