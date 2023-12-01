@@ -156,14 +156,6 @@ def training_loop(
                 y_pred=np.argmax(pred_td, axis=1),
             )
 
-            if WANDB_AVAILABLE:
-                wb.log(
-                    {
-                        "Train/acc_si": acc_si,
-                        "Train/acc_td": acc_td,
-                    }
-                )
-
             total_loss_c.backward()
             optimizer.step()
         if scheduler is not None:
@@ -186,12 +178,6 @@ def training_loop(
                     "Train/Epoch-loss_si": train_loss_si,
                     "Train/Epoch-loss_td": train_loss_td,
                     "Train/Epoch-total_loss": train_loss_total,
-                }
-            )
-
-        if WANDB_AVAILABLE:
-            wb.log(
-                {
                     "Train/Epoch-acc_si": train_acc_si,
                     "Train/Epoch-acc_td": train_acc_td,
                 }
