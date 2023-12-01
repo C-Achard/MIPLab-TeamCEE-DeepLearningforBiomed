@@ -182,7 +182,7 @@ class MRIAttention(nn.Module):
         self.input_size = input_size
         self.num_heads = num_heads
         self.dropout = dropout
-        self.norm1 = nn.LayerNorm(input_size**2)
+        self.norm1 = nn.BatchNorm1d(input_size**2)
         self.attention_dropout = attention_dropout
         self.post_attention_dropout = post_attention_dropout
         self.multihead_attention = nn.MultiheadAttention(
@@ -206,15 +206,17 @@ class MRIAttention(nn.Module):
         x_att, attn_weights = self.multihead_attention(x, x, x)
         x_att = nn.Dropout(self.post_attention_dropout)(x_att)
         x = x + x_att
-        x = self.norm1(x)
 
         logger.debug(f"multihead_attention: {x.shape}")
 
         x = rearrange(x, "b h w -> b (h w)")
+        x = self.norm1(x)
+
         x = self.intermediate(x)
         x = nn.ReLU()(x)
         x = self.intermediate_norm(x)
         x = nn.Dropout(self.dropout)(x)
+        # maybe here also attentino add
         ## Classification layers ##
         x_si = self.fingerprints(x)
         x_td = self.task_decoder(x)
