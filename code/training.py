@@ -188,6 +188,7 @@ def training_loop(
         if WANDB_AVAILABLE:
             wb.log(
                 {
+                    "Epoch": epoch,
                     "Train/Epoch-loss_si": train_loss_si,
                     "Train/Epoch-loss_td": train_loss_td,
                     "Train/Epoch-total_loss": train_loss_total,
