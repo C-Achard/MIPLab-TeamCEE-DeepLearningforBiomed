@@ -337,7 +337,7 @@ class MRICustomAttention(nn.Module):
     def __init__(
         self,
         output_size_subjects,
-        output_size_tasks=9,
+        output_size_tasks=8,
         input_size=400,
         attention_dropout=0.1,
         intermediate_size=512,

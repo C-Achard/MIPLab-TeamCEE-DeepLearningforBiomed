@@ -329,15 +329,15 @@ if __name__ == "__main__":
 
     ## Custom EGNNA model ##
 
-    if False:
-        model = MRICustomAttention(
-            output_size_subjects=NUM_SUBJECTS,
-            output_size_tasks=NUM_TASKS,
-            input_size=config["d_model_input"],
-            attention_dropout=config["attention_dropout"],
-            intermediate_size=config["d_model_intermediate"],
-            intermediate_dropout=config["dropout"],
-        ).to(device)
+
+    # model = MRICustomAttention(
+    #     output_size_subjects=NUM_SUBJECTS,
+    #     output_size_tasks=NUM_TASKS,
+    #     input_size=config["d_model_input"],
+    #     attention_dropout=config["attention_dropout"],
+    #     intermediate_size=config["d_model_intermediate"],
+    #     intermediate_dropout=config["dropout"],
+    # ).to(device)
 
     # model_LL = LinearLayer(
     # output_size_tasks=9,
