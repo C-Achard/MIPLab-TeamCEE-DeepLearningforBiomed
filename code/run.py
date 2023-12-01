@@ -43,9 +43,11 @@ config = {
     "stratify": True,
     "validation_split": 0.2,
     # general
-    "epochs": 100,
-    "batch_size": 4,
-    "lr": 1e-3,
+    "epochs": 25,
+    "batch_size": 32,
+    "lr": 1e-4,
+    "use_scheduler": True,
+    "do_early_stopping": False,
     "patience": 10,
     "best_loss": 10,
     # model
@@ -380,4 +382,5 @@ if __name__ == "__main__":
         test_loader=test_loader,
         run_name=wandb_run_name,
         use_deeplift=False,
+        use_early_stopping=config["do_early_stopping"],
     )
