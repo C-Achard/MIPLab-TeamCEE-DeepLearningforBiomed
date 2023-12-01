@@ -361,9 +361,6 @@ if __name__ == "__main__":
         lr=config["lr"],
         weight_decay=config["weight_decay"],
     )
-    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-    #     optimizer, mode="min", factor=0.1, patience=2, verbose=True, min_lr=1e-8, cooldown=10, threshold=1e-4
-    # )
     scheduler = torch.optim.lr_scheduler.StepLR(
         optimizer, step_size=20, gamma=0.1
     )
