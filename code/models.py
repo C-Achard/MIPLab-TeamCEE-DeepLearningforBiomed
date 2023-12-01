@@ -20,7 +20,6 @@ class LinearLayer(nn.Module):
         output_size_subjects,
         output_size_tasks=8,
         input_size=400,
-        # intermediate_size=[512],
         intermediate_size=None,
         dropout=0.1,
     ):
@@ -34,22 +33,28 @@ class LinearLayer(nn.Module):
             dropout (float): dropout rate.
         """
         super().__init__()
+        self.input_size = input_size
+        self.dropout = dropout
+
+        self.norm_task = nn.LayerNorm(output_size_tasks)
+        self.norm_subject = nn.LayerNorm(output_size_subjects)
+        # If multiple layers
         self.interm_layers_finger = nn.ModuleList()
         self.interm_layers_task = nn.ModuleList()
-        self.input_size = input_size
         self.intermediate_size_v = intermediate_size
         self.dropout = dropout
         self.norms = nn.ModuleList()
-        self.norm_task = nn.LayerNorm(output_size_tasks)
-        self.norm_subject = nn.LayerNorm(output_size_subjects)
 
         if intermediate_size is not None:
             for i, dim in enumerate(intermediate_size):
                 if i == 0:
                     self.interm_layers_finger.append(
-                        nn.Linear(input_size, dim)
+                        nn.Linear(input_size**2, dim)
                     )
-                    self.interm_layers_task.append(nn.Linear(input_size, dim))
+                    self.interm_layers_task.append(
+                        nn.Linear(input_size**2, dim)
+                    )
+
                 else:
                     self.interm_layers_finger.append(
                         nn.Linear(intermediate_size[i - 1], dim)
@@ -69,12 +74,15 @@ class LinearLayer(nn.Module):
                 self.norms.append(nn.LayerNorm(dim))
         else:
             self.fingerprints_classifier = nn.Linear(
-                input_size, output_size_subjects
+                input_size**2, output_size_subjects
             )
-            self.task_classifier = nn.Linear(input_size, output_size_tasks)
+            self.task_classifier = nn.Linear(
+                input_size**2, output_size_tasks
+            )
 
     def forward(self, x):
         """Forward pass of the layer."""
+        x = rearrange(x, "b h w -> b (h w)")
         if self.intermediate_size_v is not None:
             i = 0
             for layer_task, layer_finger, norm in zip(
@@ -88,10 +96,10 @@ class LinearLayer(nn.Module):
                     x_td = layer_task(x_td)
 
                 x_si = norm(x_si)
-                x_si = nn.Dropout(p=self.dropout)(x_si)
+                x_si = nn.Dropout(self.dropout)(x_si)
 
                 x_td = norm(x_td)
-                x_td = nn.Dropout(p=self.dropout)(x_td)
+                x_td = nn.Dropout(self.dropout)(x_td)
 
                 i = 1
 
@@ -100,14 +108,9 @@ class LinearLayer(nn.Module):
             x_td = self.task_classifier_i(x_td)
 
         else:
+            # If no intermediate layers
             x_si = self.fingerprints_classifier(x)
             x_td = self.task_classifier(x)
-
-        x_si = self.norm_subject(x_si)
-        x_si = nn.Dropout(p=self.dropout)(x_si)
-
-        x_td = self.norm_task(x_td)
-        x_td = nn.Dropout(p=self.dropout)(x_td)
 
         # return an attention weight empty
         return x_si, x_td, []

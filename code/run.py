@@ -43,10 +43,11 @@ config = {
     "stratify": True,
     "validation_split": 0.2,
     # general
-    "epochs": 2,
-    "batch_size": 32,
-    "lr": 1e-4,
-    "use_scheduler": True,
+    "epochs": 100,
+    "batch_size": 4,
+    "lr": 1e-3,
+    "patience": 10,
+    "best_loss": 10,
     # model
     "d_model_input": 400,
     "d_model_intermediate": 2048,

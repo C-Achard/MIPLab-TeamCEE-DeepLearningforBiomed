@@ -207,6 +207,16 @@ def training_loop(
             val_f1_td,
         ) = evaluate(model, valid_loader, criterion, device, config)
 
+        # Early stopping to avoid overfitting
+        if val_loss_total < config["best_loss"]:
+            config["best_loss"] = val_loss_total
+            patience = config["patience"]
+        else:
+            patience -= 1
+            if patience == 0:
+                print("Early stopping")
+                break
+
         if WANDB_AVAILABLE:
             wb.log(
                 {
