@@ -25,7 +25,8 @@ select = [
 
 # Never enforce `E501` (line length violations) and 'E741' (ambiguous variable names)
 # and 'G004' (do not use f-strings in logging)
-ignore = ["E501", "E741", "G004"]
+# and "F401" (module imported but unused)
+ignore = ["E501", "E741", "G004", "F401"]
 exclude = [
     ".bzr",
     ".direnv",
