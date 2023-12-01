@@ -132,6 +132,7 @@ class MRIAttention(nn.Module):
         )
         # self.attention = DotProductAttention(dropout_p=attention_dropout)
         self.intermediate = nn.Linear(input_size**2, intermediate_size)
+        self.intermediate_norm = nn.BatchNorm1d(intermediate_size)
         self.fingerprints = nn.Linear(intermediate_size, output_size_subjects)
         self.task_decoder = nn.Linear(intermediate_size, output_size_tasks)
 
@@ -147,6 +148,8 @@ class MRIAttention(nn.Module):
 
         x = rearrange(x, "b h w -> b (h w)")
         x = self.intermediate(x)
+        x = nn.ReLU()(x)
+        x = self.intermediate_norm(x)
         x = nn.Dropout(self.dropout)(x)
         ## Classification layers ##
         x_si = self.fingerprints(x)
@@ -260,6 +263,7 @@ class MRICustomAttention(nn.Module):
         self.intermediate_dropout = intermediate_dropout
         self.attention = EGNNA(input_size, input_size)
         self.intermediate = nn.Linear(input_size**2, intermediate_size)
+        self.intermediate_norm = nn.BatchNorm1d(intermediate_size)
         self.fingerprints = nn.Linear(intermediate_size, output_size_subjects)
         self.task_decoder = nn.Linear(intermediate_size, output_size_tasks)
 
@@ -271,6 +275,8 @@ class MRICustomAttention(nn.Module):
 
         x = rearrange(x, "b h w -> b (h w)")
         x = self.intermediate(x)
+        x = nn.ReLU()(x)
+        x = self.intermediate_norm(x)
         x = nn.Dropout(self.intermediate_dropout)(x)
         ## Classification layers ##
         x_si = self.fingerprints(x)

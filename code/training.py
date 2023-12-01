@@ -33,6 +33,7 @@ def training_loop(
     test_loader=None,
     save_model=False,
     save_attention_weights=False,
+    run_name=None,
 ):
     """Training loop."""
     history = {
@@ -51,7 +52,10 @@ def training_loop(
     }
     print(f"Using {device}")
     if WANDB_AVAILABLE:
-        wb.init(project="DLB-Project", config=config)
+        if run_name is not None:
+            wb.init(project="DLB-Project", config=config, name=run_name)
+        else:
+            wb.init(project="DLB-Project", config=config)
         wb.watch(model)
 
     if scheduler is not None:

@@ -38,19 +38,19 @@ environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 ###-------------------------------------------------------------------------------------------------------------------
 #         hyperparameters
 ###-------------------------------------------------------------------------------------------------------------------
-
+wandb_run_name = "SelfAtt intermediate layer 2048"
 config = {
     # data
-    "stratify": False,
-    "validation_split": 0.1,
+    "stratify": True,
+    "validation_split": 0.2,
     # general
     "epochs": 100,
-    "batch_size": 10,
+    "batch_size": 32,
     "lr": 1e-4,
-    "use_scheduler": False,
+    "use_scheduler": True,
     # model
     "d_model_input": 400,
-    "d_model_intermediate": 512,
+    "d_model_intermediate": 2048,
     "d_model_task_output": 8,
     "d_model_fingerprint_output": None,  # needs to be determined from data
     "dropout": 0.1,
@@ -300,25 +300,27 @@ print(f"Using device: {device}")
 
 ## Self-Attention model ##
 
-model = MRIAttention(
-    # output_size_tasks = config["d_model_task_output"],
-    output_size_tasks=NUM_TASKS,
-    output_size_subjects=NUM_SUBJECTS,
-    input_size=config["d_model_input"],
-    attention_dropout=config["attention_dropout"],
-    num_heads=config["num_heads"],
-    intermediate_size=config["d_model_intermediate"],
-    dropout=config["dropout"],
-).to(device)
+# model = MRIAttention(
+#     # output_size_tasks = config["d_model_task_output"],
+#     output_size_tasks=NUM_TASKS,
+#     output_size_subjects=NUM_SUBJECTS,
+#     input_size=config["d_model_input"],
+#     attention_dropout=config["attention_dropout"],
+#     num_heads=config["num_heads"],
+#     intermediate_size=config["d_model_intermediate"],
+#     dropout=config["dropout"],
+# ).to(device)
 
 ## Custom EGNNA model ##
 
-# model = MRICustomAttention(
-#     output_size_subjects=NUM_SUBJECTS,
-#     output_size_tasks=NUM_TASKS,
-#     input_size=config["d_model_input"],
-#     attention_dropout=config["attention_dropout"],
-# ).to(device)
+model = MRICustomAttention(
+    output_size_subjects=NUM_SUBJECTS,
+    output_size_tasks=NUM_TASKS,
+    input_size=config["d_model_input"],
+    attention_dropout=config["attention_dropout"],
+    intermediate_size=config["d_model_intermediate"],
+    intermediate_dropout=config["dropout"],
+).to(device)
 
 # x = torch.randn(1, 400, 400)
 # y = model(x.to(device))
@@ -355,4 +357,5 @@ training_loop(
     save_model=False,
     save_attention_weights=True,
     test_loader=test_loader,
+    run_name=wandb_run_name,
 )
