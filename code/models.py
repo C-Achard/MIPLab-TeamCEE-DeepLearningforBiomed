@@ -2,6 +2,7 @@
 import logging
 
 import torch
+import torch.nn.functional as F
 from einops import rearrange
 from torch import nn
 
@@ -92,9 +93,11 @@ class LinearLayer(nn.Module):
                     x_si = layer_finger(x_si)
                     x_td = layer_task(x_td)
 
+                x_si = F.relu(x_si)
                 x_si = norm(x_si)
                 x_si = nn.Dropout(self.dropout)(x_si)
 
+                x_td = F.relu(x_td)
                 x_td = norm(x_td)
                 x_td = nn.Dropout(self.dropout)(x_td)
 
