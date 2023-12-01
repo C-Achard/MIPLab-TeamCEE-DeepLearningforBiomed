@@ -107,8 +107,9 @@ class MRIAttention(nn.Module):
         output_size_tasks=8,
         input_size=400,
         num_heads=4,
-        dropout=0.1,
         attention_dropout=0.1,
+        dropout=0.1,
+        intermediate_size=512,
     ):
         """Initialize the model.
 
@@ -117,8 +118,9 @@ class MRIAttention(nn.Module):
             output_size_tasks (int): number of tasks to classify.
             input_size (int): size of the input matrix.
             num_heads (int): number of heads in the multi-head attention.
-            dropout (float): dropout rate.
+            dropout (float): dropout rate for the intermediate layers.
             attention_dropout (float): dropout rate for the attention layers.
+            intermediate_size (int): size of the intermediate linear layers output.
         """
         super().__init__()
         self.input_size = input_size
@@ -129,8 +131,9 @@ class MRIAttention(nn.Module):
             input_size, num_heads, dropout=attention_dropout, batch_first=True
         )
         # self.attention = DotProductAttention(dropout_p=attention_dropout)
-        self.fingerprints = nn.Linear(input_size**2, output_size_subjects)
-        self.task_decoder = nn.Linear(input_size**2, output_size_tasks)
+        self.intermediate = nn.Linear(input_size**2, intermediate_size)
+        self.fingerprints = nn.Linear(intermediate_size, output_size_subjects)
+        self.task_decoder = nn.Linear(intermediate_size, output_size_tasks)
 
     def forward(self, x):
         """Forward pass of the model."""
@@ -143,11 +146,11 @@ class MRIAttention(nn.Module):
         # logger.debug(f"softmax: {x.shape}")
 
         x = rearrange(x, "b h w -> b (h w)")
+        x = self.intermediate(x)
+        x = nn.Dropout(self.dropout)(x)
         ## Classification layers ##
         x_si = self.fingerprints(x)
-        # x_si = nn.Dropout(self.dropout)(x_si)
         x_td = self.task_decoder(x)
-        # x_td = nn.Dropout(self.dropout)(x_td)
         return x_si, x_td, attn_weights
 
 
@@ -238,6 +241,8 @@ class MRICustomAttention(nn.Module):
         output_size_tasks=8,
         input_size=400,
         attention_dropout=0.1,
+        intermediate_size=512,
+        intermediate_dropout=0.1,
     ):
         """Initialize the model.
 
@@ -246,13 +251,17 @@ class MRICustomAttention(nn.Module):
             output_size_tasks (int): number of tasks to classify.
             input_size (int): size of the input matrix.
             attention_dropout (float): dropout rate for the attention layers.
+            intermediate_size (int): size of the intermediate linear layers output.
+            intermediate_dropout (float): dropout rate for the intermediate layers.
         """
         super().__init__()
         self.input_size = input_size
         self.attention_dropout = attention_dropout
+        self.intermediate_dropout = intermediate_dropout
         self.attention = EGNNA(input_size, input_size)
-        self.fingerprints = nn.Linear(input_size**2, output_size_subjects)
-        self.task_decoder = nn.Linear(input_size**2, output_size_tasks)
+        self.intermediate = nn.Linear(input_size**2, intermediate_size)
+        self.fingerprints = nn.Linear(intermediate_size, output_size_subjects)
+        self.task_decoder = nn.Linear(intermediate_size, output_size_tasks)
 
     def forward(self, x):
         """Forward pass of the model."""
@@ -261,6 +270,8 @@ class MRICustomAttention(nn.Module):
         x = nn.Dropout(self.attention_dropout)(x)
 
         x = rearrange(x, "b h w -> b (h w)")
+        x = self.intermediate(x)
+        x = nn.Dropout(self.intermediate_dropout)(x)
         ## Classification layers ##
         x_si = self.fingerprints(x)
         x_td = self.task_decoder(x)
