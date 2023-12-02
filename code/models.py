@@ -119,7 +119,7 @@ class LinearLayer(nn.Module):
             x_td = self.task_classifier(x)
 
         # return an attention weight empty
-        return x_si, x_td, []
+        return x_si, x_td, torch.tensor([])
 
 
 class LinearLayerShared(nn.Module):
@@ -202,7 +202,7 @@ class LinearLayerShared(nn.Module):
             x_td = self.task_classifier(x)
 
         # return an attention weight empty
-        return x_si, x_td, []
+        return x_si, x_td, torch.tensor([])
 
 
 class DotProductAttention(nn.Module):
