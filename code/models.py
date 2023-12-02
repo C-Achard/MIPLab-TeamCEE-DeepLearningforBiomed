@@ -115,6 +115,84 @@ class LinearLayer(nn.Module):
         # return an attention weight empty
         return x_si, x_td, []
 
+    class LinearLayerShared(nn.Module):
+        """Shared linear layer with dropout and layer normalization."""
+
+        def __init__(
+            self,
+            output_size_subjects,
+            output_size_tasks=8,
+            input_size=400,
+            intermediate_size=None,
+            dropout=0.1,
+        ):
+            """Initialize the layer.
+
+            Args:
+                output_size_subjects (int): number of subjects to classify.
+                output_size_tasks (int): number of tasks to classify.
+                input_size (int): size of the input matrix.
+                intermediate_size (array): size of the intermediate linear layers output.
+                dropout (float): dropout rate.
+            """
+            super().__init__()
+            self.input_size = input_size
+            self.dropout = dropout
+
+            self.norm_task = nn.LayerNorm(output_size_tasks)
+            self.norm_subject = nn.LayerNorm(output_size_subjects)
+            # If multiple layers
+            self.interm_layers = nn.ModuleList()
+            self.intermediate_size_v = intermediate_size
+            self.dropout = dropout
+            self.norms = nn.ModuleList()
+
+            if intermediate_size is not None:
+                for i, dim in enumerate(intermediate_size):
+                    if i == 0:
+                        self.interm_layers.append(
+                            nn.Linear(input_size**2, dim)
+                        )
+                    else:
+                        self.interm_layers.append(
+                            nn.Linear(intermediate_size[i - 1], dim)
+                        )
+                self.fingerprints_classifier_i = nn.Linear(
+                    intermediate_size[-1], output_size_subjects
+                )
+                self.task_classifier_i = nn.Linear(
+                    intermediate_size[-1], output_size_tasks
+                )
+                for dim in intermediate_size:
+                    self.norms.append(nn.LayerNorm(dim))
+            else:
+                self.fingerprints_classifier = nn.Linear(
+                    input_size**2, output_size_subjects
+                )
+                self.task_classifier = nn.Linear(
+                    input_size**2, output_size_tasks
+                )
+
+        def forward(self, x):
+            """Forward pass of the shared layer."""
+            x = rearrange(x, "b h w -> b (h w)")
+            if self.intermediate_size_v is not None:
+                for layer, norm in zip(self.interm_layers, self.norms):
+                    x = layer(x)
+                    x = norm(x)
+                    x = nn.Dropout(self.dropout)(x)
+
+                # Classification layers
+                x_si = self.fingerprints_classifier_i(x)
+                x_td = self.task_classifier_i(x)
+            else:
+                # If no intermediate layers
+                x_si = self.fingerprints_classifier(x)
+                x_td = self.task_classifier(x)
+
+            # return an attention weight empty
+            return x_si, x_td, []
+
 
 class DotProductAttention(nn.Module):
     """Dot Product Attention module."""
@@ -219,7 +297,7 @@ class MRIAttention(nn.Module):
         x = self.intermediate_norm(x)
         x = nn.ReLU()(x)
         x = nn.Dropout(self.dropout)(x)
-        
+
         ## Classification layers ##
         x_si = self.fingerprints(x)
         x_td = self.task_decoder(x)
@@ -360,7 +438,7 @@ class MRICustomAttention(nn.Module):
         self.intermediate_norm = nn.BatchNorm1d(intermediate_size)
         self.fingerprints = nn.Linear(intermediate_size, output_size_subjects)
         self.task_decoder = nn.Linear(intermediate_size, output_size_tasks)
-        
+
         self.add_and_norm = add_and_norm
         self.norm = nn.BatchNorm1d(input_size**2)
 
@@ -384,7 +462,7 @@ class MRICustomAttention(nn.Module):
         else:
             x = x_att
             x = rearrange(x, "b h w -> b (h w)")
-            
+
         x = self.intermediate(x)
         x = nn.ReLU()(x)
         x = self.intermediate_norm(x)
