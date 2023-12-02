@@ -17,7 +17,7 @@ from utils import get_df_raw_data
 DATA_PATH = (Path.cwd() / "DATA").resolve()
 print(f"Data path: {DATA_PATH}")
 DATA_PATH = str(DATA_PATH)
-# DATA_PATH = /media/miplab-nas2/Data3/Hamid/SSBCAPs/HCP100
+DATA_PATH = "/media/miplab-nas2/Data3/Hamid/SSBCAPs/HCP100"
 
 ###-------------------------------------------------------------------------------------------------------------------
 #         subject ID list
@@ -126,7 +126,7 @@ IDs = [
 #         joining train and test dataframes from all subjects
 ###-------------------------------------------------------------------------------------------------------------------
 
-data_df_train, data_df_test = get_df_raw_data(DATA_PATH, IDs[:10])
+data_df_train, data_df_test = get_df_raw_data(DATA_PATH, IDs[:])
 
 NUM_SUBJECTS = len(data_df_train["subject_id"].unique())
 print(f"Number of subjects: {NUM_SUBJECTS}")
@@ -169,7 +169,7 @@ criterion = nn.CrossEntropyLoss()
 
 config = {
     # general
-    "epochs": 1,
+    "epochs": 30,
     "batch_size": 32,
     # optimizer
     "lambda_si": 0.5,
@@ -187,7 +187,8 @@ learning_rate = [1e-5, 2e-5, 1e-4, 2e-4, 1e-3, 1e-2]
 dropout = [0.1, 0.3, 0.5, 0.7, 0.9]
 intermediate_size = [
     [80000, 40000, 20000, 10000, 5000, 2500, 1250, 625],
-    [20000, 10000, 5000, 2500, 1250, 625][1000, 500, 250],
+    [20000, 10000, 5000, 2500, 1250, 625],
+    [1000, 500, 250],
     None,
     [500, 250],
     [1000],
