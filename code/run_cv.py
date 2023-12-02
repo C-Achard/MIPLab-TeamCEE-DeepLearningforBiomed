@@ -229,3 +229,23 @@ print(
     "Optimal Hyperparameters (learning_rate, dropout, intermediate_size, layer_norm):"
 )
 print(optimal_parameters_linear_split_model)
+
+min_mean_loss_linear_shared_model_indice = np.argmin(
+    average_error_per_linear_shared_model[:, 0]
+)
+min_mean_loss_linear_shared_model = average_error_per_linear_shared_model[
+    min_mean_loss_linear_shared_model_indice
+]
+optimal_parameters_linear_shared_model = model_parameters[
+    min_mean_loss_linear_shared_model_indice
+]
+
+print("Linear Shared Model")
+print("Average loss across folds for all combinations:")
+print(average_error_per_linear_shared_model)
+print("Average loss across folds of best performing model:")
+print(min_mean_loss_linear_shared_model)
+print(
+    "Optimal Hyperparameters (learning_rate, dropout, intermediate_size, layer_norm):"
+)
+print(optimal_parameters_linear_shared_model)
