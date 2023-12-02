@@ -325,9 +325,14 @@ def training_loop(
         model.eval()
         model._deeplift_mode = "si"
         dl = DeepLift(model)
+        # print("Input shape : ", p_matrix.shape)
+        # baseline = torch.mean(p_matrix, dim=0).unsqueeze(0).repeat(p_matrix.shape[0], 1, 1)
+        # print("Baseline shape : ", baseline.shape)
         attributions_si = dl.attribute(
             inputs=p_matrix,
+            # baseline is mean of all inputs repeated batch_size times
             baselines=torch.zeros_like(p_matrix),
+            # baselines=baseline,
             target=0,
         )
         print("SI attributions shape : ", attributions_si.shape)
@@ -338,6 +343,7 @@ def training_loop(
             dl = DeepLift(model)
             attributions_td = dl.attribute(
                 inputs=p_matrix,
+                # baselines=torch.mean(p_matrix, dim=0).unsqueeze(0).repeat(p_matrix.shape[0], 1, 1),
                 baselines=torch.zeros_like(p_matrix),
                 target=i,
             )
