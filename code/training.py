@@ -89,7 +89,12 @@ def training_loop(
                 final_epoch_attention_weights.append(attention_weights)
 
             # create heatmap from attention weights and log to wandb
-            if WANDB_AVAILABLE and epoch % 20 == 0 and _i == 0:
+            if (
+                WANDB_AVAILABLE
+                and epoch % 20 == 0
+                and _i == 0
+                and len(attention_weights.size()) > 0
+            ):
                 heatmap_att = sns.heatmap(
                     np.mean(
                         attention_weights.squeeze().detach().cpu().numpy(),
@@ -318,7 +323,7 @@ def training_loop(
             torch.cat(final_epoch_attention_weights).detach().cpu().numpy()
         )
         np.save("attention_weights.npy", final_epoch_attention_weights_save)
-        
+
     if use_deeplift:  # MUST BE KEPT AS LAST STEP
         attributions = []
         print("Running DeepLIFT")
