@@ -5,6 +5,7 @@ import math
 import torch
 from einops import rearrange
 from torch import nn
+import torch.nn.functional as F
 
 # TODO(cyril) : see if EGNNA from Homework2 can be used here (if self-attention is not enough)
 logger = logging.getLogger(__name__)
