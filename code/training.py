@@ -212,7 +212,7 @@ def training_loop(
 
         if WANDB_AVAILABLE:
             wb.log(
-                {
+                {   "Epoch/Epoch": epoch,
                     "Val/Epoch-loss_si": val_loss_si,
                     "Val/Epoch-loss_td": val_loss_td,
                     "Val/Epoch-total_loss": val_loss_total,
