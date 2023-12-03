@@ -14,10 +14,10 @@ from sklearn.preprocessing import LabelEncoder
 from utils import get_df_raw_data
 
 ## Data path ##
-DATA_PATH = (Path.cwd() / "DATA").resolve()
+DATA_PATH = (Path.cwd().parent / "DATA").resolve()
 print(f"Data path: {DATA_PATH}")
 DATA_PATH = str(DATA_PATH)
-DATA_PATH = "/media/miplab-nas2/Data3/Hamid/SSBCAPs/HCP100"
+# DATA_PATH = "/media/miplab-nas2/Data3/Hamid/SSBCAPs/HCP100"
 
 ###-------------------------------------------------------------------------------------------------------------------
 #         subject ID list
@@ -183,17 +183,14 @@ config = {
 #         hyperparameter combinations
 ###-------------------------------------------------------------------------------------------------------------------
 
-learning_rate = [1e-5, 2e-5, 1e-4, 2e-4, 1e-3, 1e-2]
+learning_rate = [1e-5, 1e-4, 1e-3, 1e-2]
 dropout = [0.1, 0.3, 0.5, 0.7, 0.9]
 intermediate_size = [
-    # [80000, 40000, 20000, 10000, 5000, 2500, 1250, 625],
-    # [20000, 10000, 5000, 2500, 1250, 625],
     [1000, 500, 250],
     None,
     [500, 250],
     [250],
-    [1000],
-    # [10000, 5000, 2500, 1250, 625],
+    [5000, 2500, 1000],
 ]
 layer_norm = [False]
 
