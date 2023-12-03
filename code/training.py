@@ -93,7 +93,7 @@ def training_loop(
                 WANDB_AVAILABLE
                 and epoch % 20 == 0
                 and _i == 0
-                and len(attention_weights.size()) > 0
+                and attention_weights.nelement() != 0
             ):
                 heatmap_att = sns.heatmap(
                     np.mean(
