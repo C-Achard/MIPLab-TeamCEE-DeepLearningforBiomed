@@ -101,12 +101,12 @@ class LinearLayer(nn.Module):
                     x_si = layer_finger(x_si)
                     x_td = layer_task(x_td)
 
-                x_si = F.relu(x_si)
                 x_si = norm(x_si)
+                x_si = nn.ReLU()(x_si)
                 x_si = nn.Dropout(self.dropout)(x_si)
 
-                x_td = F.relu(x_td)
                 x_td = norm(x_td)
+                x_td = nn.ReLU()(x_td)
                 x_td = nn.Dropout(self.dropout)(x_td)
 
                 i = 1
@@ -192,8 +192,8 @@ class LinearLayerShared(nn.Module):
         if self.intermediate_size_v is not None:
             for layer, norm in zip(self.interm_layers, self.norms):
                 x = layer(x)
-                x = F.relu(x)
                 x = norm(x)
+                x = nn.ReLU()(x)
                 x = nn.Dropout(self.dropout)(x)
 
             # Classification layers
@@ -328,8 +328,8 @@ class MRIAttention(nn.Module):
         x = nn.Dropout(self.attention_dropout)(x)
         x = rearrange(x, "b h w -> b (h w)")
         x = self.intermediate(x)
-        x = nn.ReLU()(x)
         x = self.intermediate_norm(x)
+        x = nn.ReLU()(x)
         x = nn.Dropout(self.dropout)(x)
         if self._deeplift_mode == "si":
             x = self.fingerprints(x)
@@ -478,8 +478,8 @@ class MRICustomAttention(nn.Module):
             x = rearrange(x, "b h w -> b (h w)")
 
         x = self.intermediate(x)
-        x = nn.ReLU()(x)
         x = self.intermediate_norm(x)
+        x = nn.ReLU()(x)
         x = nn.Dropout(self.intermediate_dropout)(x)
         ## Classification layers ##
         x_si = self.fingerprints(x)
@@ -495,8 +495,8 @@ class MRICustomAttention(nn.Module):
         print("x in", x.shape)
         x = rearrange(x, "b h w -> b (h w)")
         x = self.intermediate(x)
-        x = nn.ReLU()(x)
         x = self.intermediate_norm(x)
+        x = nn.ReLU()(x)
         x = nn.Dropout(self.intermediate_dropout)(x)
         if self._deeplift_mode == "si":
             x = self.fingerprints(x)
