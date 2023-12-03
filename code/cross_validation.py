@@ -2,6 +2,8 @@
 ###-------------------------------------------------------------------------------------------------------------------
 #         imports
 ###-------------------------------------------------------------------------------------------------------------------
+import gc
+
 import numpy as np
 import pandas as pd
 import torch
@@ -89,6 +91,9 @@ def training_loop_and_cross_validation(
                 + " / "
                 + str(len(model_parameter_combinations))
             )
+
+            gc.collect()
+            torch.cuda.empty_cache()
 
             # Get model configurations
             learning_rate = properties[0]
