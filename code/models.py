@@ -192,6 +192,7 @@ class LinearLayerShared(nn.Module):
         if self.intermediate_size_v is not None:
             for layer, norm in zip(self.interm_layers, self.norms):
                 x = layer(x)
+                x = F.relu(x)
                 x = norm(x)
                 x = nn.Dropout(self.dropout)(x)
 
