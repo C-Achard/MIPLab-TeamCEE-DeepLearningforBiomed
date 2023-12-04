@@ -161,7 +161,7 @@ data_df_test["enc_task_id"] = enc_test_task_encodings
 #         cross validation
 ###-------------------------------------------------------------------------------------------------------------------
 
-device = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 print()
 
@@ -174,7 +174,7 @@ config = {
     # optimizer
     "lambda_si": 0.5,
     "lambda_td": 0.5,
-    "k_folds": 5,
+    "k_folds": 2,
     "num_subjects": NUM_SUBJECTS,
     "d_model_input": 400,
 }
@@ -183,10 +183,21 @@ config = {
 #         hyperparameter combinations
 ###-------------------------------------------------------------------------------------------------------------------
 
-learning_rate = [1e-5, 1e-4, 1e-3, 1e-2]
-dropout = [0.1, 0.3, 0.5, 0.7, 0.9]
+learning_rate = [
+    # 1e-5, 
+    1e-4, 
+    # 1e-3, 
+    # 1e-2
+    ]
+dropout = [
+    0.1,
+    0.3,
+    0.5,
+    0.7,
+    0.9
+    ]
 intermediate_size = [None, [500, 250], [250], [1000]]
-layer_norm = [False]
+layer_norm = [True]
 
 
 # Get all possible configuration combination of the parameters above
@@ -223,7 +234,7 @@ optimal_parameters_linear_shared_model = model_parameters[
     min_mean_loss_linear_shared_model_indice
 ]
 
-with Path.open("cv_run.txt", "w+") as f:
+with Path("cv_run.txt").open("w") as f:
     f.write("Linear Split Model\n")
     f.write("Average loss across folds for all combinations:\n")
     f.write(str(average_error_per_linear_split_model) + "\n")
