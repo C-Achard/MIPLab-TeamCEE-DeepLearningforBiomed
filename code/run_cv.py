@@ -185,13 +185,7 @@ config = {
 
 learning_rate = [1e-5, 1e-4, 1e-3, 1e-2]
 dropout = [0.1, 0.3, 0.5, 0.7, 0.9]
-intermediate_size = [
-    [1000, 500, 250],
-    None,
-    [500, 250],
-    [250],
-    [2500, 1000, 500, 250],
-]
+intermediate_size = [None, [500, 250], [250], [1000]]
 layer_norm = [False]
 
 
