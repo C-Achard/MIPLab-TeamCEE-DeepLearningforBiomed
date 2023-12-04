@@ -153,8 +153,8 @@ def training_loop_and_cross_validation(
             current_cv_losses_linear_split_model.append(
                 [
                     np.mean(history_split["val-loss_total"][-5:]),
-                    np.mean(history_shared["val-acc_si"][-5:]),
-                    np.mean(history_shared["val-acc_td"][-5:]),
+                    np.mean(history_split["val-acc_si"][-5:]),
+                    np.mean(history_split["val-acc_td"][-5:]),
                 ]
             )
 
