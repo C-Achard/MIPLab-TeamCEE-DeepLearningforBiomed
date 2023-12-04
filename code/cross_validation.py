@@ -95,6 +95,8 @@ def training_loop_and_cross_validation(
             gc.collect()
             torch.cuda.empty_cache()
 
+            print("Current parameters: " + str(properties))
+
             # Get model configurations
             learning_rate = properties[0]
             dropout = properties[1]
@@ -177,14 +179,14 @@ def training_loop_and_cross_validation(
             )
 
         if len(all_losses_linear_shared_model) == 0:
-            all_losses_linear_shared_model = (
+            all_losses_linear_shared_model = [
                 current_cv_losses_linear_shared_model
-            )
+            ]
         else:
             all_losses_linear_shared_model = np.vstack(
                 [
                     all_losses_linear_shared_model,
-                    current_cv_losses_linear_shared_model,
+                    [current_cv_losses_linear_shared_model],
                 ]
             )
 

@@ -190,7 +190,7 @@ intermediate_size = [
     None,
     [500, 250],
     [250],
-    [5000, 2500, 1000],
+    [2500, 1000, 500, 250],
 ]
 layer_norm = [False]
 
@@ -219,16 +219,6 @@ optimal_parameters_linear_split_model = model_parameters[
     min_mean_loss_linear_split_model_indice
 ]
 
-print("Linear Split Model")
-print("Average loss across folds for all combinations:")
-print(average_error_per_linear_split_model)
-print("Average loss across folds of best performing model:")
-print(min_mean_loss_linear_split_model)
-print(
-    "Optimal Hyperparameters (learning_rate, dropout, intermediate_size, layer_norm):"
-)
-print(optimal_parameters_linear_split_model)
-
 min_mean_loss_linear_shared_model_indice = np.argmin(
     average_error_per_linear_shared_model[:, 0]
 )
@@ -239,12 +229,24 @@ optimal_parameters_linear_shared_model = model_parameters[
     min_mean_loss_linear_shared_model_indice
 ]
 
-print("Linear Shared Model")
-print("Average loss across folds for all combinations:")
-print(average_error_per_linear_shared_model)
-print("Average loss across folds of best performing model:")
-print(min_mean_loss_linear_shared_model)
-print(
-    "Optimal Hyperparameters (learning_rate, dropout, intermediate_size, layer_norm):"
-)
-print(optimal_parameters_linear_shared_model)
+with Path.open("cv_run.txt", "w+") as f:
+    f.write("Linear Split Model\n")
+    f.write("Average loss across folds for all combinations:\n")
+    f.write(str(average_error_per_linear_split_model) + "\n")
+    f.write("Average loss across folds of best performing model:\n")
+    f.write(str(min_mean_loss_linear_split_model) + "\n")
+    f.write(
+        "Optimal Hyperparameters (learning_rate, dropout, intermediate_size, layer_norm):\n"
+    )
+    f.write(str(optimal_parameters_linear_split_model) + "\n")
+
+    f.write("Linear Shared Model\n")
+    f.write("Average loss across folds for all combinations:\n")
+    f.write(str(average_error_per_linear_shared_model) + "\n")
+    f.write("Average loss across folds of best performing model:\n")
+    f.write(str(min_mean_loss_linear_shared_model) + "\n")
+    f.write(
+        "Optimal Hyperparameters (learning_rate, dropout, intermediate_size, layer_norm):\n"
+    )
+    f.write(str(optimal_parameters_linear_shared_model) + "\n")
+    f.close()

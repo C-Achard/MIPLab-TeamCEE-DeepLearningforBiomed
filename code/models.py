@@ -3,9 +3,9 @@ import logging
 import math
 
 import torch
+import torch.nn.functional as F
 from einops import rearrange
 from torch import nn
-import torch.nn.functional as F
 
 # TODO(cyril) : see if EGNNA from Homework2 can be used here (if self-attention is not enough)
 logger = logging.getLogger(__name__)
@@ -39,13 +39,6 @@ class LinearLayer(nn.Module):
         self.input_size = input_size
         self.dropout = dropout
 
-        if layer_norm:
-            self.norm_task = nn.LayerNorm(output_size_tasks)
-            self.norm_subject = nn.LayerNorm(output_size_subjects)
-        else:
-            self.norm_task = nn.BatchNorm1d(output_size_tasks)
-            self.norm_subject = nn.BatchNorm1d(output_size_subjects)
-
         # If multiple layers
         self.interm_layers_finger = nn.ModuleList()
         self.interm_layers_task = nn.ModuleList()
@@ -78,7 +71,10 @@ class LinearLayer(nn.Module):
             )
 
             for dim in intermediate_size:
-                self.norms.append(nn.LayerNorm(dim))
+                if layer_norm:
+                    self.norms.append(nn.LayerNorm(dim))
+                else:
+                    self.norms.append(nn.BatchNorm1d(dim))
         else:
             self.fingerprints_classifier = nn.Linear(
                 input_size**2, output_size_subjects
@@ -150,13 +146,6 @@ class LinearLayerShared(nn.Module):
         super().__init__()
         self.input_size = input_size
 
-        if layer_norm:
-            self.norm_task = nn.LayerNorm(output_size_tasks)
-            self.norm_subject = nn.LayerNorm(output_size_subjects)
-        else:
-            self.norm_task = nn.BatchNorm1d(output_size_tasks)
-            self.norm_subject = nn.BatchNorm1d(output_size_subjects)
-
         # If multiple layers
         self.interm_layers = nn.ModuleList()
         self.intermediate_size_v = intermediate_size
@@ -178,7 +167,10 @@ class LinearLayerShared(nn.Module):
                 intermediate_size[-1], output_size_tasks
             )
             for dim in intermediate_size:
-                self.norms.append(nn.LayerNorm(dim))
+                if layer_norm:
+                    self.norms.append(nn.LayerNorm(dim))
+                else:
+                    self.norms.append(nn.BatchNorm1d(dim))
         else:
             self.fingerprints_classifier = nn.Linear(
                 input_size**2, output_size_subjects
