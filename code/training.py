@@ -39,7 +39,8 @@ def training_loop(
     test_loader=None,
     save_model=False,
     save_attention_weights=False,
-    run_name=None,
+    run_name="experiment_1",
+    job_name="Fold",
     use_deeplift=False,
     use_early_stopping=False,
 ):
@@ -61,7 +62,13 @@ def training_loop(
     print(f"Using {device}")
     if WANDB_AVAILABLE:
         if run_name is not None:
-            wb.init(project="DLB-Project", config=config, name=run_name)
+            wb.init(
+                project="DLB-Project",
+                config=config,
+                name=run_name,
+                group=run_name,
+                job_type=job_name,
+            )
         else:
             wb.init(project="DLB-Project", config=config)
         wb.watch(model)
@@ -213,7 +220,8 @@ def training_loop(
 
         if WANDB_AVAILABLE:
             wb.log(
-                {   "Epoch/Epoch": epoch,
+                {
+                    "Epoch/Epoch": epoch,
                     "Val/Epoch-loss_si": val_loss_si,
                     "Val/Epoch-loss_td": val_loss_td,
                     "Val/Epoch-total_loss": val_loss_total,

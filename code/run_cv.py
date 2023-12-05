@@ -184,20 +184,14 @@ config = {
 ###-------------------------------------------------------------------------------------------------------------------
 
 learning_rate = [
-    # 1e-5, 
-    1e-4, 
-    # 1e-3, 
+    # 1e-5,
+    1e-4,
+    # 1e-3,
     # 1e-2
-    ]
-dropout = [
-    0.1,
-    0.3,
-    0.5,
-    0.7,
-    0.9
-    ]
-intermediate_size = [None, [500, 250], [250], [1000]]
-layer_norm = [True]
+]
+dropout = [0.1, 0.2]
+intermediate_size = [[1000], [2500], [500, 500], [1000, 1000]]
+layer_norm = [True, False]
 
 
 # Get all possible configuration combination of the parameters above

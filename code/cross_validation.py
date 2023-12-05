@@ -137,6 +137,12 @@ def training_loop_and_cross_validation(
                 optimizer_split,
                 device,
                 config,
+                run_name="experiment_1",
+                job_name="Linear Split"
+                + " Iteration "
+                + str(i)
+                + " Fold "
+                + str(_k),
             )
 
             history_shared = training_loop(
@@ -148,6 +154,12 @@ def training_loop_and_cross_validation(
                 optimizer_shared,
                 device,
                 config,
+                run_name="experiment_1",
+                job_name="Linear Shared"
+                + " Iteration "
+                + str(i)
+                + " Fold "
+                + str(_k),
             )
 
             current_cv_losses_linear_split_model.append(
