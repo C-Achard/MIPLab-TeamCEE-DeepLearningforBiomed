@@ -19,10 +19,11 @@ class LinearLayer(nn.Module):
     def __init__(
         self,
         output_size_subjects,
-        output_size_tasks=8,
+        output_size_tasks=9,
         input_size=400,
         intermediate_size=None,
         dropout=0.1,
+        layer_norm=True,
     ):
         """Initialize the layer.
 
@@ -32,18 +33,16 @@ class LinearLayer(nn.Module):
             input_size (int): size of the input matrix.
             intermediate_size (array): size of the intermediate linear layers output.
             dropout (float): dropout rate.
+            layer_norm (boolean): layer norm or batch norm.
         """
         super().__init__()
         self.input_size = input_size
         self.dropout = dropout
 
-        self.norm_task = nn.LayerNorm(output_size_tasks)
-        self.norm_subject = nn.LayerNorm(output_size_subjects)
         # If multiple layers
         self.interm_layers_finger = nn.ModuleList()
         self.interm_layers_task = nn.ModuleList()
         self.intermediate_size_v = intermediate_size
-        self.dropout = dropout
         self.norms = nn.ModuleList()
 
         if intermediate_size is not None:
@@ -72,7 +71,10 @@ class LinearLayer(nn.Module):
             )
 
             for dim in intermediate_size:
-                self.norms.append(nn.LayerNorm(dim))
+                if layer_norm:
+                    self.norms.append(nn.LayerNorm(dim))
+                else:
+                    self.norms.append(nn.BatchNorm1d(dim))
         else:
             self.fingerprints_classifier = nn.Linear(
                 input_size**2, output_size_subjects
@@ -98,10 +100,12 @@ class LinearLayer(nn.Module):
 
                 x_si = F.relu(x_si)
                 x_si = norm(x_si)
+                x_si = nn.ReLU()(x_si)
                 x_si = nn.Dropout(self.dropout)(x_si)
 
                 x_td = F.relu(x_td)
                 x_td = norm(x_td)
+                x_td = nn.ReLU()(x_td)
                 x_td = nn.Dropout(self.dropout)(x_td)
 
                 i = 1
@@ -116,7 +120,87 @@ class LinearLayer(nn.Module):
             x_td = self.task_classifier(x)
 
         # return an attention weight empty
-        return x_si, x_td, []
+        return x_si, x_td, torch.tensor([])
+
+
+class LinearLayerShared(nn.Module):
+    """Shared linear layer with dropout and layer normalization."""
+
+    def __init__(
+        self,
+        output_size_subjects,
+        output_size_tasks=9,
+        input_size=400,
+        intermediate_size=None,
+        dropout=0.1,
+        layer_norm=True,
+    ):
+        """Initialize the layer.
+
+        Args:
+            output_size_subjects (int): number of subjects to classify.
+            output_size_tasks (int): number of tasks to classify.
+            input_size (int): size of the input matrix.
+            intermediate_size (array): size of the intermediate linear layers output.
+            dropout (float): dropout rate.
+            layer_norm (boolean): layer norm or batch norm.
+        """
+        super().__init__()
+        self.input_size = input_size
+
+        # If multiple layers
+        self.interm_layers = nn.ModuleList()
+        self.intermediate_size_v = intermediate_size
+        self.dropout = dropout
+        self.norms = nn.ModuleList()
+
+        if intermediate_size is not None:
+            for i, dim in enumerate(intermediate_size):
+                if i == 0:
+                    self.interm_layers.append(nn.Linear(input_size**2, dim))
+                else:
+                    self.interm_layers.append(
+                        nn.Linear(intermediate_size[i - 1], dim)
+                    )
+            self.fingerprints_classifier_i = nn.Linear(
+                intermediate_size[-1], output_size_subjects
+            )
+            self.task_classifier_i = nn.Linear(
+                intermediate_size[-1], output_size_tasks
+            )
+            for dim in intermediate_size:
+                if layer_norm:
+                    self.norms.append(nn.LayerNorm(dim))
+                else:
+                    self.norms.append(nn.BatchNorm1d(dim))
+        else:
+            self.fingerprints_classifier = nn.Linear(
+                input_size**2, output_size_subjects
+            )
+            self.task_classifier = nn.Linear(
+                input_size**2, output_size_tasks
+            )
+
+    def forward(self, x):
+        """Forward pass of the shared layer."""
+        x = rearrange(x, "b h w -> b (h w)")
+        if self.intermediate_size_v is not None:
+            for layer, norm in zip(self.interm_layers, self.norms):
+                x = layer(x)
+                x = norm(x)
+                x = nn.ReLU()(x)
+                x = nn.Dropout(self.dropout)(x)
+
+            # Classification layers
+            x_si = self.fingerprints_classifier_i(x)
+            x_td = self.task_classifier_i(x)
+        else:
+            # If no intermediate layers
+            x_si = self.fingerprints_classifier(x)
+            x_td = self.task_classifier(x)
+
+        # return an attention weight empty
+        return x_si, x_td, torch.tensor([])
 
 
 class DotProductAttention(nn.Module):
@@ -167,6 +251,7 @@ class MRIAttention(nn.Module):
         attention_dropout=0.1,
         dropout=0.1,
         intermediate_size=512,
+        add_and_norm=True,
     ):
         """Initialize the model.
 
@@ -176,8 +261,9 @@ class MRIAttention(nn.Module):
             input_size (int): size of the input matrix.
             num_heads (int): number of heads in the multi-head attention.
             dropout (float): dropout rate for the intermediate layers.
-            attention_dropout (float): dropout rate for the attention layers.
+            attention_dropout (float): dropout rate for the attention layers. (on attention weights)
             intermediate_size (int): size of the intermediate linear layers output.
+            add_and_norm (bool): whether to add and normalize the attention output.
         """
         super().__init__()
         self.input_size = input_size
@@ -187,11 +273,13 @@ class MRIAttention(nn.Module):
         self.multihead_attention = nn.MultiheadAttention(
             input_size, num_heads, dropout=attention_dropout, batch_first=True
         )
-        # self.attention = DotProductAttention(dropout_p=attention_dropout)
         self.intermediate = nn.Linear(input_size**2, intermediate_size)
         self.intermediate_norm = nn.BatchNorm1d(intermediate_size)
         self.fingerprints = nn.Linear(intermediate_size, output_size_subjects)
         self.task_decoder = nn.Linear(intermediate_size, output_size_tasks)
+
+        self.add_and_norm = add_and_norm
+        self.norm = nn.BatchNorm1d(input_size**2)
 
         self.output_size_subjects = output_size_subjects
         self.output_size_tasks = output_size_tasks
@@ -203,18 +291,22 @@ class MRIAttention(nn.Module):
         if self._deeplift_mode is not None:
             return self.forward_deeplift(x)
         ## Attention ##
-        x, attn_weights = self.multihead_attention(x, x, x)
-        # x, attn_weights = self.attention(x, x, x)
-        x = nn.Dropout(self.attention_dropout)(x)
-        logger.debug(f"multihead_attention: {x.shape}")
-        # x = F.softmax(x, dim=1)
-        # logger.debug(f"softmax: {x.shape}")
+        x_att, attn_weights = self.multihead_attention(x, x, x)
+        if self.add_and_norm:
+            x = x + x_att
+            x = rearrange(x, "b h w -> b (h w)")
+            x = self.norm(x)
+        else:
+            x = x_att
+            x = rearrange(x, "b h w -> b (h w)")
 
-        x = rearrange(x, "b h w -> b (h w)")
+        logger.debug(f"multihead_attention: {x.shape}")
+        ## Intermediate layers ##
         x = self.intermediate(x)
-        x = nn.ReLU()(x)
         x = self.intermediate_norm(x)
+        x = nn.ReLU()(x)
         x = nn.Dropout(self.dropout)(x)
+
         ## Classification layers ##
         x_si = self.fingerprints(x)
         x_td = self.task_decoder(x)
@@ -231,8 +323,8 @@ class MRIAttention(nn.Module):
         x = nn.Dropout(self.attention_dropout)(x)
         x = rearrange(x, "b h w -> b (h w)")
         x = self.intermediate(x)
-        x = nn.ReLU()(x)
         x = self.intermediate_norm(x)
+        x = nn.ReLU()(x)
         x = nn.Dropout(self.dropout)(x)
         if self._deeplift_mode == "si":
             x = self.fingerprints(x)
@@ -333,6 +425,7 @@ class MRICustomAttention(nn.Module):
         attention_dropout=0.1,
         intermediate_size=512,
         intermediate_dropout=0.1,
+        add_and_norm=True,
     ):
         """Initialize the model.
 
@@ -343,6 +436,7 @@ class MRICustomAttention(nn.Module):
             attention_dropout (float): dropout rate for the attention layers.
             intermediate_size (int): size of the intermediate linear layers output.
             intermediate_dropout (float): dropout rate for the intermediate layers.
+            add_and_norm (bool): whether to add and normalize the attention output.
         """
         super().__init__()
         self.input_size = input_size
@@ -354,6 +448,9 @@ class MRICustomAttention(nn.Module):
         self.fingerprints = nn.Linear(intermediate_size, output_size_subjects)
         self.task_decoder = nn.Linear(intermediate_size, output_size_tasks)
 
+        self.add_and_norm = add_and_norm
+        self.norm = nn.BatchNorm1d(input_size**2)
+
         self.output_size_subjects = output_size_subjects
         self.output_size_tasks = output_size_tasks
 
@@ -364,13 +461,20 @@ class MRICustomAttention(nn.Module):
         if self._deeplift_mode is not None:
             return self.forward_deeplift(x)
         ## Attention ##
-        x, attn_weights = self.attention(x)
-        x = nn.Dropout(self.attention_dropout)(x)
+        x_att, attn_weights = self.attention(x)
+        x_att = nn.Dropout(self.attention_dropout)(x_att)
 
-        x = rearrange(x, "b h w -> b (h w)")
+        if self.add_and_norm:
+            x = x + x_att
+            x = rearrange(x, "b h w -> b (h w)")
+            x = self.norm(x)
+        else:
+            x = x_att
+            x = rearrange(x, "b h w -> b (h w)")
+
         x = self.intermediate(x)
-        x = nn.ReLU()(x)
         x = self.intermediate_norm(x)
+        x = nn.ReLU()(x)
         x = nn.Dropout(self.intermediate_dropout)(x)
         ## Classification layers ##
         x_si = self.fingerprints(x)
@@ -386,8 +490,8 @@ class MRICustomAttention(nn.Module):
         print("x in", x.shape)
         x = rearrange(x, "b h w -> b (h w)")
         x = self.intermediate(x)
-        x = nn.ReLU()(x)
         x = self.intermediate_norm(x)
+        x = nn.ReLU()(x)
         x = nn.Dropout(self.intermediate_dropout)(x)
         if self._deeplift_mode == "si":
             x = self.fingerprints(x)

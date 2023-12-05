@@ -17,7 +17,7 @@ from utils import get_df_raw_data
 DATA_PATH = (Path.cwd().parent / "DATA").resolve()
 print(f"Data path: {DATA_PATH}")
 DATA_PATH = str(DATA_PATH)
-# DATA_PATH = /media/miplab-nas2/Data3/Hamid/SSBCAPs/HCP100
+# DATA_PATH = "/media/miplab-nas2/Data3/Hamid/SSBCAPs/HCP100"
 
 ###-------------------------------------------------------------------------------------------------------------------
 #         subject ID list
@@ -161,7 +161,7 @@ data_df_test["enc_task_id"] = enc_test_task_encodings
 #         cross validation
 ###-------------------------------------------------------------------------------------------------------------------
 
-device = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 print()
 
@@ -169,12 +169,12 @@ criterion = nn.CrossEntropyLoss()
 
 config = {
     # general
-    "epochs": 20,
+    "epochs": 30,
     "batch_size": 32,
     # optimizer
     "lambda_si": 0.5,
     "lambda_td": 0.5,
-    "k_folds": 5,
+    "k_folds": 2,
     "num_subjects": NUM_SUBJECTS,
     "d_model_input": 400,
 }
@@ -183,33 +183,75 @@ config = {
 #         hyperparameter combinations
 ###-------------------------------------------------------------------------------------------------------------------
 
-dropout = [0.3, 0.5, 0.8]
-attention_dropout = [0.3, 0.5, 0.8]
-num_heads = [2, 4, 8]
-learning_rate = [1e-4, 1e-3, 1e-2]
+learning_rate = [
+    # 1e-5, 
+    1e-4, 
+    # 1e-3, 
+    # 1e-2
+    ]
+dropout = [
+    0.1,
+    0.3,
+    0.5,
+    0.7,
+    0.9
+    ]
+intermediate_size = [None, [500, 250], [250], [1000]]
+layer_norm = [True]
+
 
 # Get all possible configuration combination of the parameters above
 all_model_combinations = list(
-    itertools.product(dropout, attention_dropout, num_heads, learning_rate)
+    itertools.product(learning_rate, dropout, intermediate_size, layer_norm)
 )
 criterion = nn.CrossEntropyLoss()
 
 (
-    mean_total_loss,
+    average_error_per_linear_split_model,
+    average_error_per_linear_shared_model,
     model_parameters,
 ) = training_loop_and_cross_validation(
     data_df_train, criterion, device, all_model_combinations, config
 )
 
-min_mean_loss_indice = np.argmin(mean_total_loss)
-min_mean_loss = mean_total_loss[min_mean_loss_indice]
-optimal_parameters = model_parameters[min_mean_loss_indice]
-
-print("Average loss across folds for each model:")
-print(mean_total_loss)
-print("Average loss across folds of best performing model:")
-print(min_mean_loss)
-print(
-    "Optimal Hyperparameters (dropout, attention_dropout, num_heads, learning_rate):"
+min_mean_loss_linear_split_model_indice = np.argmin(
+    average_error_per_linear_split_model[:, 0]
 )
-print(optimal_parameters)
+min_mean_loss_linear_split_model = average_error_per_linear_split_model[
+    min_mean_loss_linear_split_model_indice
+]
+optimal_parameters_linear_split_model = model_parameters[
+    min_mean_loss_linear_split_model_indice
+]
+
+min_mean_loss_linear_shared_model_indice = np.argmin(
+    average_error_per_linear_shared_model[:, 0]
+)
+min_mean_loss_linear_shared_model = average_error_per_linear_shared_model[
+    min_mean_loss_linear_shared_model_indice
+]
+optimal_parameters_linear_shared_model = model_parameters[
+    min_mean_loss_linear_shared_model_indice
+]
+
+with Path("cv_run.txt").open("w") as f:
+    f.write("Linear Split Model\n")
+    f.write("Average loss across folds for all combinations:\n")
+    f.write(str(average_error_per_linear_split_model) + "\n")
+    f.write("Average loss across folds of best performing model:\n")
+    f.write(str(min_mean_loss_linear_split_model) + "\n")
+    f.write(
+        "Optimal Hyperparameters (learning_rate, dropout, intermediate_size, layer_norm):\n"
+    )
+    f.write(str(optimal_parameters_linear_split_model) + "\n")
+
+    f.write("Linear Shared Model\n")
+    f.write("Average loss across folds for all combinations:\n")
+    f.write(str(average_error_per_linear_shared_model) + "\n")
+    f.write("Average loss across folds of best performing model:\n")
+    f.write(str(min_mean_loss_linear_shared_model) + "\n")
+    f.write(
+        "Optimal Hyperparameters (learning_rate, dropout, intermediate_size, layer_norm):\n"
+    )
+    f.write(str(optimal_parameters_linear_shared_model) + "\n")
+    f.close()

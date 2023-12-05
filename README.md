@@ -2,16 +2,6 @@
 
  Brain fingerprinting and task classification project
 
-## TODO
-
-- [x] : Add a complete `requirements.txt` file
-- [x] : Create the data and code folders on the servers
-- [x] : Create data loading functions
-- [x] : Create first model
-- [ ] : Train first good model
-
-
----
 ## Data access
 
 * Server login:

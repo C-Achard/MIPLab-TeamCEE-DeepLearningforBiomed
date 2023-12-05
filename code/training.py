@@ -41,6 +41,7 @@ def training_loop(
     save_attention_weights=False,
     run_name=None,
     use_deeplift=False,
+    use_early_stopping=False,
 ):
     """Training loop."""
     history = {
@@ -88,7 +89,12 @@ def training_loop(
                 final_epoch_attention_weights.append(attention_weights)
 
             # create heatmap from attention weights and log to wandb
-            if WANDB_AVAILABLE and epoch % 20 == 0 and _i == 0:
+            if (
+                WANDB_AVAILABLE
+                and epoch % 20 == 0
+                and _i == 0
+                and attention_weights.nelement() != 0
+            ):
                 heatmap_att = sns.heatmap(
                     np.mean(
                         attention_weights.squeeze().detach().cpu().numpy(),
@@ -155,14 +161,6 @@ def training_loop(
                 y_pred=np.argmax(pred_td, axis=1),
             )
 
-            if WANDB_AVAILABLE:
-                wb.log(
-                    {
-                        "Train/acc_si": acc_si,
-                        "Train/acc_td": acc_td,
-                    }
-                )
-
             total_loss_c.backward()
             optimizer.step()
         if scheduler is not None:
@@ -186,12 +184,6 @@ def training_loop(
                     "Train/Epoch-loss_si": train_loss_si,
                     "Train/Epoch-loss_td": train_loss_td,
                     "Train/Epoch-total_loss": train_loss_total,
-                }
-            )
-
-        if WANDB_AVAILABLE:
-            wb.log(
-                {
                     "Train/Epoch-acc_si": train_acc_si,
                     "Train/Epoch-acc_td": train_acc_td,
                 }
@@ -209,18 +201,19 @@ def training_loop(
         ) = evaluate(model, valid_loader, criterion, device, config)
 
         # Early stopping to avoid overfitting
-        if val_loss_total < config["best_loss"]:
-            config["best_loss"] = val_loss_total
-            patience = config["patience"]
-        else:
-            patience -= 1
-            if patience == 0:
-                print("Early stopping")
-                break
+        if use_early_stopping:
+            if val_loss_total < config["best_loss"]:
+                config["best_loss"] = val_loss_total
+                patience = config["patience"]
+            else:
+                patience -= 1
+                if patience == 0:
+                    print("Early stopping")
+                    break
 
         if WANDB_AVAILABLE:
             wb.log(
-                {
+                {   "Epoch/Epoch": epoch,
                     "Val/Epoch-loss_si": val_loss_si,
                     "Val/Epoch-loss_td": val_loss_td,
                     "Val/Epoch-total_loss": val_loss_total,
@@ -331,7 +324,9 @@ def training_loop(
             torch.cat(final_epoch_attention_weights).detach().cpu().numpy()
         )
         np.save("attention_weights.npy", final_epoch_attention_weights_save)
+
     if use_deeplift:  # MUST BE KEPT AS LAST STEP
+        attributions = []
         print("Running DeepLIFT")
         model.eval()
         model._deeplift_mode = "si"
@@ -343,16 +338,19 @@ def training_loop(
         )
         print("SI attributions shape : ", attributions_si.shape)
         model._deeplift_mode = "td"
-        dl = DeepLift(model)
-        attributions_td = dl.attribute(
-            inputs=p_matrix,
-            baselines=torch.zeros_like(p_matrix),
-            target=tuple(range(model.output_size_tasks)),
-        )
-        print("TD attributions shape : ", attributions_td.shape)
-        attributions = (attributions_si, attributions_td)
-        with Path("attributions.pkl").open("wb") as f:
-            pickle.dump(attributions, f)
+        attributions.append(attributions_si.detach().cpu().numpy())
+        for i, task in enumerate(range(len(task_labels))):
+            print(f"Running DeepLIFT for task {task_labels[task]}")
+            dl = DeepLift(model)
+            attributions_td = dl.attribute(
+                inputs=p_matrix,
+                baselines=torch.zeros_like(p_matrix),
+                target=i,
+            )
+            print("TD attributions shape : ", attributions_td.shape)
+            attributions.append(attributions_td.detach().cpu().numpy())
+        attributions = np.stack(attributions)
+        np.save("attributions.npy", attributions)
 
     print("Finished Training.")
     return history

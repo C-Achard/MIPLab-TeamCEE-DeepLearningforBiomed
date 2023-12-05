@@ -130,7 +130,7 @@ def balanced_data_shuffle_cv(train_subjects, test_subjects):
             subject_tasks = test_subjects[
                 test_subjects["enc_subject_id"] == subject
             ].sample(frac=0.5)
-            train_subjects = train_subjects.append(subject_tasks)
+            train_subjects = pd.concat([train_subjects, subject_tasks])
             test_subjects = test_subjects.drop(subject_tasks.index)
             print(
                 f"Moved {len(subject_tasks)} tasks from subject {subject} to the train set"

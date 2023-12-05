@@ -43,9 +43,11 @@ config = {
     "stratify": True,
     "validation_split": 0.2,
     # general
-    "epochs": 100,
-    "batch_size": 4,
-    "lr": 1e-3,
+    "epochs": 25,
+    "batch_size": 32,
+    "lr": 1e-4,
+    "use_scheduler": True,
+    "do_early_stopping": False,
     "patience": 10,
     "best_loss": 10,
     # model
@@ -56,7 +58,6 @@ config = {
     "dropout": 0.1,
     "attention_dropout": 0.1,
     "num_heads": 1,
-    # "num_layers": 0,  # TBA?
     # optimizer
     "lambda_si": 0.5,
     "lambda_td": 0.5,
@@ -312,27 +313,28 @@ if __name__ == "__main__":
 
     ## Self-Attention model ##
 
-    # model = MRIAttention(
-    #     # output_size_tasks = config["d_model_task_output"],
-    #     output_size_tasks=NUM_TASKS,
-    #     output_size_subjects=NUM_SUBJECTS,
-    #     input_size=config["d_model_input"],
-    #     attention_dropout=config["attention_dropout"],
-    #     num_heads=config["num_heads"],
-    #     intermediate_size=config["d_model_intermediate"],
-    #     dropout=config["dropout"],
-    # ).to(device)
+    model = MRIAttention(
+        # output_size_tasks = config["d_model_task_output"],
+        output_size_tasks=NUM_TASKS,
+        output_size_subjects=NUM_SUBJECTS,
+        input_size=config["d_model_input"],
+        attention_dropout=config["attention_dropout"],
+        num_heads=config["num_heads"],
+        intermediate_size=config["d_model_intermediate"],
+        dropout=config["dropout"],
+    ).to(device)
 
     ## Custom EGNNA model ##
 
-    model = MRICustomAttention(
-        output_size_subjects=NUM_SUBJECTS,
-        output_size_tasks=NUM_TASKS,
-        input_size=config["d_model_input"],
-        attention_dropout=config["attention_dropout"],
-        intermediate_size=config["d_model_intermediate"],
-        intermediate_dropout=config["dropout"],
-    ).to(device)
+
+    # model = MRICustomAttention(
+    #     output_size_subjects=NUM_SUBJECTS,
+    #     output_size_tasks=NUM_TASKS,
+    #     input_size=config["d_model_input"],
+    #     attention_dropout=config["attention_dropout"],
+    #     intermediate_size=config["d_model_intermediate"],
+    #     intermediate_dropout=config["dropout"],
+    # ).to(device)
 
     # model_LL = LinearLayer(
     # output_size_tasks=9,
@@ -361,9 +363,6 @@ if __name__ == "__main__":
         lr=config["lr"],
         weight_decay=config["weight_decay"],
     )
-    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-    #     optimizer, mode="min", factor=0.1, patience=2, verbose=True, min_lr=1e-8, cooldown=10, threshold=1e-4
-    # )
     scheduler = torch.optim.lr_scheduler.StepLR(
         optimizer, step_size=20, gamma=0.1
     )
@@ -382,5 +381,6 @@ if __name__ == "__main__":
         save_attention_weights=True,
         test_loader=test_loader,
         run_name=wandb_run_name,
-        use_deeplift=False,
+        use_deeplift=True,
+        use_early_stopping=config["do_early_stopping"],
     )
