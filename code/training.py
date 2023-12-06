@@ -196,71 +196,79 @@ def training_loop(
                 }
             )
 
-        # Validation
-        (
-            val_loss_total,
-            val_loss_si,
-            val_loss_td,
-            val_acc_si,
-            val_acc_td,
-            val_f1_si,
-            val_f1_td,
-        ) = evaluate(model, valid_loader, criterion, device, config)
-
-        # Early stopping to avoid overfitting
-        if use_early_stopping:
-            if val_loss_total < config["best_loss"]:
-                config["best_loss"] = val_loss_total
-                patience = config["patience"]
-            else:
-                patience -= 1
-                if patience == 0:
-                    print("Early stopping")
-                    break
-
-        if WANDB_AVAILABLE:
-            wb.log(
-                {
-                    "Epoch/Epoch": epoch,
-                    "Val/Epoch-loss_si": val_loss_si,
-                    "Val/Epoch-loss_td": val_loss_td,
-                    "Val/Epoch-total_loss": val_loss_total,
-                    "Val/Epoch-acc_si": val_acc_si,
-                    "Val/Epoch-acc_td": val_acc_td,
-                    "Val/Epoch-f1_si": val_f1_si,
-                    "Val/Epoch-f1_td": val_f1_td,
-                }
-            )
-
-        if (
-            save_model
-            and val_f1_si > history["val-acc_si"][-1]
-            and val_f1_td > history["val-acc_td"][-1]
-        ):
-            torch.save(model.state_dict(), "best_val_model.pth")
-            if WANDB_AVAILABLE:
-                wb.save("best_val_model.pth")
-
-        # Logging
+        # logging
         history["epoch"] += 1
         history["loss_total"].append(train_loss_total)
         history["loss_si"].append(train_loss_si)
         history["loss_td"].append(train_loss_td)
         history["acc_si"].append(train_acc_si)
-        history["val-loss_total"].append(val_loss_total)
-        history["val-loss_si"].append(val_loss_si)
-        history["val-loss_td"].append(val_loss_td)
-        history["val-acc_si"].append(val_acc_si)
-        history["val-acc_td"].append(val_acc_td)
-        history["LR"].append(optimizer.param_groups[0]["lr"])
-        print(
-            f"Epoch: {epoch}/{epochs} - loss_total: {train_loss_total:.4f}"
-            + f" - acc: SI {train_acc_si:.2f}% / TD {train_acc_td:.2f}%\n"
-            + f" - val-loss_total: {val_loss_total:.4f}"
-            + f" - val-acc: SI {val_acc_si:.2f}% / TD {val_acc_td:.2f}%"
-            + f" - val-f1: SI {val_f1_si:.4f} / TD {val_f1_td:.4f}"
-            + f" - ({time.time()-start_epoch:.2f}s/epoch)"
-        )
+        if valid_loader is None:
+            print(
+                f"Epoch: {epoch}/{epochs} - loss_total: {train_loss_total:.4f}"
+                + f" - acc: SI {train_acc_si:.2f}% / TD {train_acc_td:.2f}%\n"
+                + f" - ({time.time()-start_epoch:.2f}s/epoch)"
+            )
+        else:
+            # Validation
+            (
+                val_loss_total,
+                val_loss_si,
+                val_loss_td,
+                val_acc_si,
+                val_acc_td,
+                val_f1_si,
+                val_f1_td,
+            ) = evaluate(model, valid_loader, criterion, device, config)
+
+            # Early stopping to avoid overfitting
+            if use_early_stopping:
+                if val_loss_total < config["best_loss"]:
+                    config["best_loss"] = val_loss_total
+                    patience = config["patience"]
+                else:
+                    patience -= 1
+                    if patience == 0:
+                        print("Early stopping")
+                        break
+
+            if WANDB_AVAILABLE:
+                wb.log(
+                    {
+                        "Epoch/Epoch": epoch,
+                        "Val/Epoch-loss_si": val_loss_si,
+                        "Val/Epoch-loss_td": val_loss_td,
+                        "Val/Epoch-total_loss": val_loss_total,
+                        "Val/Epoch-acc_si": val_acc_si,
+                        "Val/Epoch-acc_td": val_acc_td,
+                        "Val/Epoch-f1_si": val_f1_si,
+                        "Val/Epoch-f1_td": val_f1_td,
+                    }
+                )
+
+            if (
+                save_model
+                and val_f1_si > history["val-acc_si"][-1]
+                and val_f1_td > history["val-acc_td"][-1]
+            ):
+                torch.save(model.state_dict(), "best_val_model.pth")
+                if WANDB_AVAILABLE:
+                    wb.save("best_val_model.pth")
+
+            # Logging
+            history["val-loss_total"].append(val_loss_total)
+            history["val-loss_si"].append(val_loss_si)
+            history["val-loss_td"].append(val_loss_td)
+            history["val-acc_si"].append(val_acc_si)
+            history["val-acc_td"].append(val_acc_td)
+            history["LR"].append(optimizer.param_groups[0]["lr"])
+            print(
+                f"Epoch: {epoch}/{epochs} - loss_total: {train_loss_total:.4f}"
+                + f" - acc: SI {train_acc_si:.2f}% / TD {train_acc_td:.2f}%\n"
+                + f" - val-loss_total: {val_loss_total:.4f}"
+                + f" - val-acc: SI {val_acc_si:.2f}% / TD {val_acc_td:.2f}%"
+                + f" - val-f1: SI {val_f1_si:.4f} / TD {val_f1_td:.4f}"
+                + f" - ({time.time()-start_epoch:.2f}s/epoch)"
+            )
 
     if test_loader is not None:
         (

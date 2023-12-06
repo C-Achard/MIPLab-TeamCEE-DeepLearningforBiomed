@@ -188,6 +188,7 @@ if __name__ == "__main__":
 
     # data_dict_train, data_dict_test = get_dict_raw_data(DATA_PATH, IDs[0:3])
     data_df_train, data_df_test = get_df_raw_data(DATA_PATH, IDs[:])
+
     train_dataframe, valid_dataframe = balanced_data_shuffle(
         data_df_train,
         val_frac=config["validation_split"],
@@ -215,13 +216,6 @@ if __name__ == "__main__":
         train_dataframe["task"].tolist()
     )
 
-    enc_valid_label_encodings = enc_labels.transform(
-        valid_dataframe["subject_id"].tolist()
-    )
-    enc_valid_task_encodings = enc_tasks.transform(
-        valid_dataframe["task"].tolist()
-    )
-
     enc_test_label_encodings = enc_labels.transform(
         data_df_test["subject_id"].tolist()
     )
@@ -231,8 +225,6 @@ if __name__ == "__main__":
 
     train_dataframe["enc_label_id"] = enc_train_label_encodings
     train_dataframe["enc_task"] = enc_train_task_encodings
-    valid_dataframe["enc_label_id"] = enc_valid_label_encodings
-    valid_dataframe["enc_task"] = enc_valid_task_encodings
     data_df_test["enc_label_id"] = enc_test_label_encodings
     data_df_test["enc_task"] = enc_test_task_encodings
 
@@ -252,16 +244,7 @@ if __name__ == "__main__":
     print(overlap_set)
     if len(overlap_set) != 0:
         print("WARNING: subjects present in train set but not in test set")
-    print("Subjects present in validation set but not in train set:")
-    overlap_set = set(valid_dataframe["subject_id"].unique()) - set(
-        train_dataframe["subject_id"].unique()
-    )
-    print(overlap_set)
-    if len(overlap_set) != 0:
-        print(
-            "WARNING: subjects present in validation set but not in train set"
-        )
-    #
+
     ###-------------------------------------------------------------------------------------------------------------------
     #         initializing dataloader objects
     ###-------------------------------------------------------------------------------------------------------------------
@@ -277,17 +260,6 @@ if __name__ == "__main__":
         train_dataset, batch_size=config["batch_size"], shuffle=True
     )
 
-    valid_dataset = TensorDataset(
-        torch.tensor(
-            np.array(valid_dataframe["mat"].tolist()).astype(np.float32)
-        ),
-        torch.tensor(valid_dataframe["enc_label_id"].to_numpy()),
-        torch.tensor(valid_dataframe["enc_task"].to_numpy()),
-    )
-    valid_loader = DataLoader(
-        valid_dataset, batch_size=config["batch_size"], shuffle=False
-    )
-
     test_dataset = TensorDataset(
         torch.tensor(
             np.array(data_df_test["mat"].tolist()).astype(np.float32)
@@ -298,6 +270,35 @@ if __name__ == "__main__":
     test_loader = DataLoader(
         test_dataset, batch_size=config["batch_size"], shuffle=False
     )
+
+    if valid_dataframe is not None:
+        enc_valid_label_encodings = enc_labels.transform(
+            valid_dataframe["subject_id"].tolist()
+        )
+        enc_valid_task_encodings = enc_tasks.transform(
+            valid_dataframe["task"].tolist()
+        )
+        valid_dataframe["enc_label_id"] = enc_valid_label_encodings
+        valid_dataframe["enc_task"] = enc_valid_task_encodings
+        print("Subjects present in validation set but not in train set:")
+        overlap_set = set(valid_dataframe["subject_id"].unique()) - set(
+            train_dataframe["subject_id"].unique()
+        )
+        print(overlap_set)
+        if len(overlap_set) != 0:
+            print(
+                "WARNING: subjects present in validation set but not in train set"
+            )
+        valid_dataset = TensorDataset(
+            torch.tensor(
+                np.array(valid_dataframe["mat"].tolist()).astype(np.float32)
+            ),
+            torch.tensor(valid_dataframe["enc_label_id"].to_numpy()),
+            torch.tensor(valid_dataframe["enc_task"].to_numpy()),
+        )
+        valid_loader = DataLoader(
+            valid_dataset, batch_size=config["batch_size"], shuffle=False
+        )
 
     #
     ###-------------------------------------------------------------------------------------------------------------------
@@ -312,20 +313,19 @@ if __name__ == "__main__":
     print(f"Using device: {device}")
 
     ## Self-Attention model ##
-
-    model = MRIAttention(
-        # output_size_tasks = config["d_model_task_output"],
-        output_size_tasks=NUM_TASKS,
-        output_size_subjects=NUM_SUBJECTS,
-        input_size=config["d_model_input"],
-        attention_dropout=config["attention_dropout"],
-        num_heads=config["num_heads"],
-        intermediate_size=config["d_model_intermediate"],
-        dropout=config["dropout"],
-    ).to(device)
+    if False:
+        model = MRIAttention(
+            # output_size_tasks = config["d_model_task_output"],
+            output_size_tasks=NUM_TASKS,
+            output_size_subjects=NUM_SUBJECTS,
+            input_size=config["d_model_input"],
+            attention_dropout=config["attention_dropout"],
+            num_heads=config["num_heads"],
+            intermediate_size=config["d_model_intermediate"],
+            dropout=config["dropout"],
+        ).to(device)
 
     ## Custom EGNNA model ##
-
 
     # model = MRICustomAttention(
     #     output_size_subjects=NUM_SUBJECTS,
@@ -336,13 +336,13 @@ if __name__ == "__main__":
     #     intermediate_dropout=config["dropout"],
     # ).to(device)
 
-    # model_LL = LinearLayer(
-    # output_size_tasks=9,
-    # output_size_subjects=NUM_SUBJECTS,
-    # input_size=config["d_model_input"],
-    # intermediate_size=[512],
-    # dropout=config["dropout"],
-    # ).to(device)
+    model = LinearLayer(
+        output_size_tasks=9,
+        output_size_subjects=NUM_SUBJECTS,
+        input_size=config["d_model_input"],
+        intermediate_size=[512],
+        dropout=config["dropout"],
+    ).to(device)
 
     # x = torch.randn(1, 400, 400)
     # y = model(x.to(device))
