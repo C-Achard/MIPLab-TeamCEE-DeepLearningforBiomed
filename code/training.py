@@ -89,19 +89,23 @@ def training_loop(
                 final_epoch_attention_weights.append(attention_weights)
 
             # create heatmap from attention weights and log to wandb
-            if WANDB_AVAILABLE and epoch % 20 == 0 and _i == 0:
-                heatmap_att = sns.heatmap(
-                    np.mean(
-                        attention_weights.squeeze().detach().cpu().numpy(),
-                        axis=0,
-                    ),
-                    annot=False,
-                    cmap="turbo",
-                    xticklabels=False,
-                    yticklabels=False,
-                    cbar=False,
-                )
-                wb.log({"Att/attention_weights": wb.Image(heatmap_att)})
+            if WANDB_AVAILABLE and epoch % 20 == 0 and _i == 0 and save_attention_weights:
+                try:
+                    heatmap_att = sns.heatmap(
+                        np.mean(
+                            attention_weights.squeeze().detach().cpu().numpy(),
+                            axis=0,
+                        ),
+                        annot=False,
+                        cmap="turbo",
+                        xticklabels=False,
+                        yticklabels=False,
+                        cbar=False,
+                    )
+                    wb.log({"Att/attention_weights": wb.Image(heatmap_att)})
+                except:
+                    print("Could not create heatmap from attention weights.")
+                    print("Turn off save_attention_weights to avoid this error.")
                 # heatmap_att_output = sns.heatmap(
                 #     np.mean(
                 #         torch.matmul(attention_weights, p_matrix).squeeze().detach().cpu().numpy(),
@@ -223,9 +227,9 @@ def training_loop(
             and val_f1_si > history["val-acc_si"][-1]
             and val_f1_td > history["val-acc_td"][-1]
         ):
-            torch.save(model.state_dict(), "best_val_model.pth")
+            torch.save(model.state_dict(), f"{run_name}_best_val_model.pth")
             if WANDB_AVAILABLE:
-                wb.save("best_val_model.pth")
+                wb.save(f"{run_name}_best_val_model.pth")
 
         # Logging
         history["epoch"] += 1
@@ -307,9 +311,9 @@ def training_loop(
             }
         )
     if save_model:
-        torch.save(model.state_dict(), "model.pth")
+        torch.save(model.state_dict(), f"{run_name}_model.pth")
         if WANDB_AVAILABLE:
-            wb.save("model.pth")
+            wb.save(f"{run_name}_model.pth")
 
     if save_attention_weights:
         if not len(final_epoch_attention_weights):
@@ -317,7 +321,7 @@ def training_loop(
         final_epoch_attention_weights_save = (
             torch.cat(final_epoch_attention_weights).detach().cpu().numpy()
         )
-        np.save("attention_weights.npy", final_epoch_attention_weights_save)
+        np.save(f"{run_name}_attention_weights.npy", final_epoch_attention_weights_save)
         
     if use_deeplift:  # MUST BE KEPT AS LAST STEP
         attributions = []
@@ -350,7 +354,7 @@ def training_loop(
             print("TD attributions shape : ", attributions_td.shape)
             attributions.append(attributions_td.detach().cpu().numpy())
         attributions = np.stack(attributions)
-        np.save("attributions.npy", attributions)
+        np.save(f"{run_name}_attributions.npy", attributions)
 
     print("Finished Training.")
     return history

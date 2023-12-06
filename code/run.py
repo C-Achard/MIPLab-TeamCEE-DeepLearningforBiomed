@@ -37,13 +37,13 @@ environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 ###-------------------------------------------------------------------------------------------------------------------
 #         hyperparameters
 ###-------------------------------------------------------------------------------------------------------------------
-wandb_run_name = "Linear only"
+wandb_run_name = "Linear decoupled 100e"
 config = {
     # data
     "stratify": True,
     "validation_split": 0.2,
     # general
-    "epochs": 25,
+    "epochs": 100,
     "batch_size": 32,
     "lr": 1e-4,
     "use_scheduler": True,
@@ -313,16 +313,16 @@ if __name__ == "__main__":
 
     ## Self-Attention model ##
 
-    model = MRIAttention(
-        # output_size_tasks = config["d_model_task_output"],
-        output_size_tasks=NUM_TASKS,
-        output_size_subjects=NUM_SUBJECTS,
-        input_size=config["d_model_input"],
-        attention_dropout=config["attention_dropout"],
-        num_heads=config["num_heads"],
-        intermediate_size=config["d_model_intermediate"],
-        dropout=config["dropout"],
-    ).to(device)
+    # model = MRIAttention(
+    #     # output_size_tasks = config["d_model_task_output"],
+    #     output_size_tasks=NUM_TASKS,
+    #     output_size_subjects=NUM_SUBJECTS,
+    #     input_size=config["d_model_input"],
+    #     attention_dropout=config["attention_dropout"],
+    #     num_heads=config["num_heads"],
+    #     intermediate_size=config["d_model_intermediate"],
+    #     dropout=config["dropout"],
+    # ).to(device)
 
     ## Custom EGNNA model ##
 
@@ -335,13 +335,13 @@ if __name__ == "__main__":
     #     intermediate_dropout=config["dropout"],
     # ).to(device)
 
-    # model_LL = LinearLayer(
-    # output_size_tasks=9,
-    # output_size_subjects=NUM_SUBJECTS,
-    # input_size=config["d_model_input"],
-    # intermediate_size=[512],
-    # dropout=config["dropout"],
-    # ).to(device)
+    model = LinearLayer(
+    output_size_tasks=9,
+    output_size_subjects=NUM_SUBJECTS,
+    input_size=config["d_model_input"],
+    intermediate_size=[1024],
+    dropout=config["dropout"],
+    ).to(device)
 
     # x = torch.randn(1, 400, 400)
     # y = model(x.to(device))
@@ -377,9 +377,9 @@ if __name__ == "__main__":
         config,
         scheduler=scheduler if config["use_scheduler"] else None,
         save_model=False,
-        save_attention_weights=True,
+        save_attention_weights=False,
         test_loader=test_loader,
         run_name=wandb_run_name,
-        use_deeplift=True,
+        use_deeplift=False,
         use_early_stopping=config["do_early_stopping"],
     )

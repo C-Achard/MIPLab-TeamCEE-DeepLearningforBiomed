@@ -113,7 +113,7 @@ class LinearLayer(nn.Module):
             x_td = self.task_classifier(x)
 
         # return an attention weight empty
-        return x_si, x_td, []
+        return x_si, x_td, None
 
 
 class DotProductAttention(nn.Module):
