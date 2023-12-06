@@ -234,8 +234,8 @@ class MRIAttention(nn.Module):
         """
         print("deeplift mode")
         print("x in", x.shape)
-        x, _ = self.multihead_attention(x, x, x)
-        x = nn.Dropout(self.attention_dropout)(x)
+        # x, _ = self.multihead_attention(x, x, x)
+        # x = nn.Dropout(self.attention_dropout)(x)
         x = rearrange(x, "b h w -> b (h w)")
         x = self.intermediate(x)
         x = nn.ReLU()(x)
