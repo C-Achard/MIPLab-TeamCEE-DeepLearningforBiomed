@@ -267,6 +267,7 @@ if __name__ == "__main__":
         test_dataset, batch_size=config["batch_size"], shuffle=False
     )
 
+    valid_loader = None
     if valid_dataframe is not None:
         enc_valid_label_encodings = enc_labels.transform(
             valid_dataframe["subject_id"].tolist()
