@@ -228,15 +228,6 @@ if __name__ == "__main__":
     data_df_test["enc_label_id"] = enc_test_label_encodings
     data_df_test["enc_task"] = enc_test_task_encodings
 
-    # enc.inverse_transform() to reverse
-
-    print("Train set:")
-    _show_df_distribution(train_dataframe)
-    print("Validation set:")
-    _show_df_distribution(valid_dataframe)
-    print("Test set:")
-    _show_df_distribution(data_df_test)
-
     print("Subjects present in train set but not in test set:")
     overlap_set = set(train_dataframe["subject_id"].unique()) - set(
         data_df_test["subject_id"].unique()
@@ -244,6 +235,11 @@ if __name__ == "__main__":
     print(overlap_set)
     if len(overlap_set) != 0:
         print("WARNING: subjects present in train set but not in test set")
+
+    print("Train set:")
+    _show_df_distribution(train_dataframe)
+    print("Test set:")
+    _show_df_distribution(data_df_test)
 
     ###-------------------------------------------------------------------------------------------------------------------
     #         initializing dataloader objects
@@ -299,6 +295,8 @@ if __name__ == "__main__":
         valid_loader = DataLoader(
             valid_dataset, batch_size=config["batch_size"], shuffle=False
         )
+        print("Validation set:")
+        _show_df_distribution(valid_dataframe)
 
     #
     ###-------------------------------------------------------------------------------------------------------------------
