@@ -378,6 +378,9 @@ def training_loop(
         attributions = np.stack(attributions)
         np.save("attributions.npy", attributions)
 
+    if WANDB_AVAILABLE:
+        wb.finish()
+
     print("Finished Training.")
     return history
 
