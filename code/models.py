@@ -38,6 +38,7 @@ class LinearLayer(nn.Module):
         super().__init__()
         self.input_size = input_size
         self.dropout = dropout
+        self._deeplift_mode = None
 
         # If multiple layers
         self.interm_layers_finger = nn.ModuleList()
@@ -85,6 +86,8 @@ class LinearLayer(nn.Module):
 
     def forward(self, x):
         """Forward pass of the model."""
+        if self._deeplift_mode is not None:
+            return self.forward_deeplift(x)
         x = rearrange(x, "b h w -> b (h w)")
         if self.intermediate_size_v is not None:
             i = 0
@@ -186,6 +189,7 @@ class LinearLayerShared(nn.Module):
         """
         super().__init__()
         self.input_size = input_size
+        self._deeplift_mode = None
 
         # If multiple layers
         self.interm_layers = nn.ModuleList()
@@ -222,6 +226,8 @@ class LinearLayerShared(nn.Module):
 
     def forward(self, x):
         """Forward pass of the shared layer."""
+        if self._deeplift_mode is not None:
+            return self.forward_deeplift(x)
         x = rearrange(x, "b h w -> b (h w)")
         if self.intermediate_size_v is not None:
             for layer, norm in zip(self.interm_layers, self.norms):
