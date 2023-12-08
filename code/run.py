@@ -42,7 +42,6 @@ environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 ###-------------------------------------------------------------------------------------------------------------------
 #         hyperparameters
 ###-------------------------------------------------------------------------------------------------------------------
-wandb_run_name = "test final models by layer dim"
 config = {
     # data
     "stratify": True,
@@ -307,7 +306,7 @@ if __name__ == "__main__":
     ###-------------------------------------------------------------------------------------------------------------------
     #         training
     ###-------------------------------------------------------------------------------------------------------------------
-    def training_model(model):
+    def training_model(model, wandb_run_name):
         """Runs the training loop and returns the test stats for the passed model."""
         criterion = nn.CrossEntropyLoss()
 
@@ -372,8 +371,12 @@ if __name__ == "__main__":
             intermediate_size=[dim],
             dropout=config["dropout"],
         ).to(device)
-
-        linear_model_test_performance.append([training_model(model)])
+        wandb_run_name = (
+            "linear_dim_" + str(dim) + "_" + str(config["dropout"])
+        )
+        linear_model_test_performance.append(
+            [training_model(model, wandb_run_name)]
+        )
 
         # Shared Model
         model = LinearLayerShared(
@@ -383,8 +386,12 @@ if __name__ == "__main__":
             intermediate_size=[dim],
             dropout=config["dropout"],
         ).to(device)
-
-        shared_linear_model_test_performance.append([training_model(model)])
+        wandb_run_name = (
+            "linear_shared_dim_" + str(dim) + "_" + str(config["dropout"])
+        )
+        shared_linear_model_test_performance.append(
+            [training_model(model, wandb_run_name)]
+        )
 
         # Self-Attention model
         model = MRIAttention(
@@ -396,8 +403,12 @@ if __name__ == "__main__":
             intermediate_size=dim,
             dropout=config["dropout"],
         ).to(device)
-
-        mri_attention_model_performance.append([training_model(model)])
+        wandb_run_name = (
+            "mri_attention_dim_" + str(dim) + "_" + str(config["dropout"])
+        )
+        mri_attention_model_performance.append(
+            [training_model(model, wandb_run_name)]
+        )
 
         # Custom EGNNA model
         model = MRICustomAttention(
@@ -408,8 +419,12 @@ if __name__ == "__main__":
             intermediate_size=dim,
             intermediate_dropout=config["dropout"],
         ).to(device)
-
-        EGNNA_attention_model_performance.append([training_model(model)])
+        wandb_run_name = (
+            "EGNNA_attention_dim_" + str(dim) + "_" + str(config["dropout"])
+        )
+        EGNNA_attention_model_performance.append(
+            [training_model(model, wandb_run_name)]
+        )
 
 print(linear_model_test_performance)
 print(shared_linear_model_test_performance)
