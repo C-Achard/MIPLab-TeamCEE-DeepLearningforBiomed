@@ -329,7 +329,7 @@ if __name__ == "__main__":
             device,
             config,
             scheduler=scheduler if config["use_scheduler"] else None,
-            save_model=True,
+            save_model=False,
             save_attention_weights=True,
             test_loader=test_loader,
             run_name=wandb_run_name,
