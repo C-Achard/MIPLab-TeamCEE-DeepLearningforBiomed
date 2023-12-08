@@ -24,8 +24,8 @@ from utils import balanced_data_shuffle, get_df_raw_data
 ## Data path ##
 
 # DATA_PATH = "C:/Users/emy8/OneDrive/Documents/EPFL/Master/MA3/DeepLbiomed/Project/MIPLab-TeamCEE-DeepLearningforBiomed/DATA"
-# DATA_PATH = Path("/media/miplab-nas2/Data3/Hamid/SSBCAPs/HCP100").resolve()
-DATA_PATH = (Path.cwd().parent / "DATA").resolve()
+DATA_PATH = Path("/media/miplab-nas2/Data3/Hamid/SSBCAPs/HCP100").resolve()
+# DATA_PATH = (Path.cwd().parent / "DATA").resolve()
 print(f"Data path: {DATA_PATH}")
 # DATA_PATH = str(DATA_PATH)
 
@@ -42,11 +42,11 @@ environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 ###-------------------------------------------------------------------------------------------------------------------
 #         hyperparameters
 ###-------------------------------------------------------------------------------------------------------------------
-wandb_run_name = "test confusion matrix"
+wandb_run_name = "test final models by layer dim"
 config = {
     # data
     "stratify": True,
-    "validation_split": 0.2,
+    "validation_split": 0,
     # general
     "epochs": 25,
     "batch_size": 32,
@@ -334,7 +334,7 @@ if __name__ == "__main__":
             save_attention_weights=True,
             test_loader=test_loader,
             run_name=wandb_run_name,
-            use_deeplift=True,
+            use_deeplift=False,
             use_early_stopping=config["do_early_stopping"],
         )
 
