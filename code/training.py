@@ -58,6 +58,10 @@ def training_loop(
         "val-acc_si": [],
         "val-acc_td": [],
         "LR": [],
+        "test_acc_si": [],
+        "test_acc_td": [],
+        "test_f1_si": [],
+        "test_f1_td": [],
     }
     print(f"Using {device}")
     if WANDB_AVAILABLE:
@@ -296,6 +300,12 @@ def training_loop(
             f"Final test loss: {test_loss_total:.4f} - acc: SI {test_acc_si:.2f}% / TD {test_acc_td:.2f}% - f1: SI {test_f1_si:.4f} / TD {test_f1_td:.4f}"
         )
         print("_" * 30)
+
+        history["test_acc_si"] = test_acc_si
+        history["test_acc_td"] = test_acc_td
+        history["test_f1_si"] = test_f1_si
+        history["test_f1_td"] = test_f1_td
+
         if WANDB_AVAILABLE:
             wb.log(
                 {

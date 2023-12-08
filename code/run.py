@@ -10,7 +10,12 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
-from models import LinearLayer, MRIAttention, MRICustomAttention
+from models import (
+    LinearLayer,
+    LinearLayerShared,
+    MRIAttention,
+    MRICustomAttention,
+)
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import DataLoader, TensorDataset
 from training import training_loop
@@ -55,7 +60,7 @@ config = {
     "d_model_intermediate": 2048,
     "d_model_task_output": 8,
     "d_model_fingerprint_output": None,  # needs to be determined from data
-    "dropout": 0.1,
+    "dropout": 0.0,
     "attention_dropout": 0.1,
     "num_heads": 1,
     # optimizer
@@ -299,7 +304,47 @@ if __name__ == "__main__":
         print("Validation set:")
         _show_df_distribution(valid_dataframe)
 
-    #
+    ###-------------------------------------------------------------------------------------------------------------------
+    #         training
+    ###-------------------------------------------------------------------------------------------------------------------
+    def training_model(model):
+        """Runs the training loop and returns the test stats for the passed model."""
+        criterion = nn.CrossEntropyLoss()
+
+        optimizer = torch.optim.AdamW(
+            model.parameters(),
+            lr=config["lr"],
+            weight_decay=config["weight_decay"],
+        )
+        scheduler = torch.optim.lr_scheduler.StepLR(
+            optimizer, step_size=20, gamma=0.1
+        )
+
+        history = training_loop(
+            config["epochs"],
+            model,
+            train_loader,
+            valid_loader,
+            criterion,
+            optimizer,
+            device,
+            config,
+            scheduler=scheduler if config["use_scheduler"] else None,
+            save_model=False,
+            save_attention_weights=True,
+            test_loader=test_loader,
+            run_name=wandb_run_name,
+            use_deeplift=True,
+            use_early_stopping=config["do_early_stopping"],
+        )
+
+        return (
+            history["test_acc_si"],
+            history["test_acc_td"],
+            history["test_f1_si"],
+            history["test_f1_td"],
+        )
+
     ###-------------------------------------------------------------------------------------------------------------------
     #         initializing model
     ###-------------------------------------------------------------------------------------------------------------------
@@ -311,75 +356,62 @@ if __name__ == "__main__":
     device = device_list[-1] if torch.cuda.is_available() else device_list[0]
     print(f"Using device: {device}")
 
-    ## Self-Attention model ##
-    if False:
+    linear_model_test_performance = []
+    shared_linear_model_test_performance = []
+    mri_attention_model_performance = []
+    EGNNA_attention_model_performance = []
+
+    dims = [100, 500, 1000, 1500, 2000, 2500]
+
+    for dim in dims:
+        # Linear Model
+        model = LinearLayer(
+            output_size_tasks=NUM_TASKS,
+            output_size_subjects=NUM_SUBJECTS,
+            input_size=config["d_model_input"],
+            intermediate_size=[dim],
+            dropout=config["dropout"],
+        ).to(device)
+
+        linear_model_test_performance.append([training_model(model)])
+
+        # Shared Model
+        model = LinearLayerShared(
+            output_size_tasks=NUM_TASKS,
+            output_size_subjects=NUM_SUBJECTS,
+            input_size=config["d_model_input"],
+            intermediate_size=[dim],
+            dropout=config["dropout"],
+        ).to(device)
+
+        shared_linear_model_test_performance.append([training_model(model)])
+
+        # Self-Attention model
         model = MRIAttention(
-            # output_size_tasks = config["d_model_task_output"],
             output_size_tasks=NUM_TASKS,
             output_size_subjects=NUM_SUBJECTS,
             input_size=config["d_model_input"],
             attention_dropout=config["attention_dropout"],
             num_heads=config["num_heads"],
-            intermediate_size=config["d_model_intermediate"],
+            intermediate_size=dim,
             dropout=config["dropout"],
         ).to(device)
 
-    ## Custom EGNNA model ##
+        mri_attention_model_performance.append([training_model(model)])
 
-    # model = MRICustomAttention(
-    #     output_size_subjects=NUM_SUBJECTS,
-    #     output_size_tasks=NUM_TASKS,
-    #     input_size=config["d_model_input"],
-    #     attention_dropout=config["attention_dropout"],
-    #     intermediate_size=config["d_model_intermediate"],
-    #     intermediate_dropout=config["dropout"],
-    # ).to(device)
+        # Custom EGNNA model
+        model = MRICustomAttention(
+            output_size_subjects=NUM_SUBJECTS,
+            output_size_tasks=NUM_TASKS,
+            input_size=config["d_model_input"],
+            attention_dropout=config["attention_dropout"],
+            intermediate_size=dim,
+            intermediate_dropout=config["dropout"],
+        ).to(device)
 
-    model = LinearLayer(
-        output_size_tasks=9,
-        output_size_subjects=NUM_SUBJECTS,
-        input_size=config["d_model_input"],
-        intermediate_size=[512],
-        dropout=config["dropout"],
-    ).to(device)
+        EGNNA_attention_model_performance.append([training_model(model)])
 
-    # x = torch.randn(1, 400, 400)
-    # y = model(x.to(device))
-
-    # x_si, x_td, attn_weights
-    # print(y[0].size())
-    # print(y[1].size())
-    # print(y[2].size())
-
-    #
-    ###-------------------------------------------------------------------------------------------------------------------
-    #         training
-    ###-------------------------------------------------------------------------------------------------------------------
-
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.AdamW(
-        model.parameters(),
-        lr=config["lr"],
-        weight_decay=config["weight_decay"],
-    )
-    scheduler = torch.optim.lr_scheduler.StepLR(
-        optimizer, step_size=20, gamma=0.1
-    )
-
-    training_loop(
-        config["epochs"],
-        model,
-        train_loader,
-        valid_loader,
-        criterion,
-        optimizer,
-        device,
-        config,
-        scheduler=scheduler if config["use_scheduler"] else None,
-        save_model=False,
-        save_attention_weights=True,
-        test_loader=test_loader,
-        run_name=wandb_run_name,
-        use_deeplift=True,
-        use_early_stopping=config["do_early_stopping"],
-    )
+print(linear_model_test_performance)
+print(shared_linear_model_test_performance)
+print(mri_attention_model_performance)
+print(EGNNA_attention_model_performance)
