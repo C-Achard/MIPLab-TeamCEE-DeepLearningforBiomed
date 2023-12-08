@@ -334,7 +334,7 @@ if __name__ == "__main__":
             save_attention_weights=True,
             test_loader=test_loader,
             run_name=wandb_run_name,
-            use_deeplift=False,
+            use_deeplift=True,
             use_early_stopping=config["do_early_stopping"],
         )
 

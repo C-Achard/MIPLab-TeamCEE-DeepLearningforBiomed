@@ -84,7 +84,7 @@ class LinearLayer(nn.Module):
             )
 
     def forward(self, x):
-        """Forward pass of the layer."""
+        """Forward pass of the model."""
         x = rearrange(x, "b h w -> b (h w)")
         if self.intermediate_size_v is not None:
             i = 0
@@ -121,6 +121,45 @@ class LinearLayer(nn.Module):
 
         # return an attention weight empty
         return x_si, x_td, torch.tensor([])
+
+    def forward_deeplift(self, x):
+        """Forward deeplift pass of the model."""
+        x = rearrange(x, "b h w -> b (h w)")
+        if self.intermediate_size_v is not None:
+            i = 0
+            for layer_task, layer_finger, norm in zip(
+                self.interm_layers_task, self.interm_layers_finger, self.norms
+            ):
+                if i == 0:
+                    x_si = layer_finger(x)
+                    x_td = layer_task(x)
+                else:
+                    x_si = layer_finger(x_si)
+                    x_td = layer_task(x_td)
+
+                x_si = F.relu(x_si)
+                x_si = norm(x_si)
+                x_si = nn.ReLU()(x_si)
+                x_si = nn.Dropout(self.dropout)(x_si)
+
+                x_td = F.relu(x_td)
+                x_td = norm(x_td)
+                x_td = nn.ReLU()(x_td)
+                x_td = nn.Dropout(self.dropout)(x_td)
+
+                i = 1
+
+            # Classification layers
+            x_si = self.fingerprints_classifier_i(x_si)
+            x_td = self.task_classifier_i(x_td)
+
+        else:
+            # If no intermediate layers
+            x_si = self.fingerprints_classifier(x)
+            x_td = self.task_classifier(x)
+
+        # return
+        return x_si if self._deeplift_mode == "si" else x_td
 
 
 class LinearLayerShared(nn.Module):
@@ -201,6 +240,27 @@ class LinearLayerShared(nn.Module):
 
         # return an attention weight empty
         return x_si, x_td, torch.tensor([])
+
+    def forward_deeplift(self, x):
+        """Forward deeplift pass of the model."""
+        x = rearrange(x, "b h w -> b (h w)")
+        if self.intermediate_size_v is not None:
+            for layer, norm in zip(self.interm_layers, self.norms):
+                x = layer(x)
+                x = norm(x)
+                x = nn.ReLU()(x)
+                x = nn.Dropout(self.dropout)(x)
+
+            # Classification layers
+            x_si = self.fingerprints_classifier_i(x)
+            x_td = self.task_classifier_i(x)
+        else:
+            # If no intermediate layers
+            x_si = self.fingerprints_classifier(x)
+            x_td = self.task_classifier(x)
+
+        # return
+        return x_si if self._deeplift_mode == "si" else x_td
 
 
 class DotProductAttention(nn.Module):
