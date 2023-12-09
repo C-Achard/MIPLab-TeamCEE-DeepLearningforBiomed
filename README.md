@@ -6,27 +6,27 @@ The project aims to decode brain fingerprints to identify with high accuracy an 
 
 ## Directory Layout
 
-Directory                           # Main directory
-
-├── code
-        ├────── cross_validation.py
-        ├────── models.py
-        ├────── run.py
-        ├────── run_cv.py
-        ├────── training.py
-        └────── utils.py                     
-├── notebooks
-        ├────── Schaefer2018_400Parcels_7Networks_order_FSLMNI152_2mm.Centroid_RAS.csv
-        ├────── Utils.ipynb
-        ├────── interpretability.ipynb
-        └─────── run.ipynb
-├── .gitattributes
-├── .gitignore
-├── .pre-commit-config.yaml
-├── README.md
-├── dev-requirements.txt
-├── pyproject.toml
-└── requirements.txt
+        Directory                           # Main directory
+        
+        ├── code
+                ├────── cross_validation.py
+                ├────── models.py
+                ├────── run.py
+                ├────── run_cv.py
+                ├────── training.py
+                └────── utils.py                     
+        ├── notebooks
+                ├────── Schaefer2018_400Parcels_7Networks_order_FSLMNI152_2mm.Centroid_RAS.csv
+                ├────── Utils.ipynb
+                ├────── interpretability.ipynb
+                └─────── run.ipynb
+        ├── .gitattributes
+        ├── .gitignore
+        ├── .pre-commit-config.yaml
+        ├── README.md
+        ├── dev-requirements.txt
+        ├── pyproject.toml
+        └── requirements.txt
 
 The implementation of the models can be found in the /code directory and the files useful for the visualisation of the results in /notebooks . 
 
