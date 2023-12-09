@@ -4,9 +4,41 @@ In collaboration with the Medical Image Processing Lab headed by Prof. Van der V
 
 The project aims to decode brain fingerprints to identify with high accuracy an individual and the task he is performing between 8 possibilities.
 
+## Directory Layout
+
+Directory                           # Main directory
+
+├── code
+        ├────── cross_validation.py
+        ├────── models.py
+        ├────── run.py
+        ├────── run_cv.py
+        ├────── training.py
+        └────── utils.py                     
+├── notebooks
+        ├────── Schaefer2018_400Parcels_7Networks_order_FSLMNI152_2mm.Centroid_RAS.csv
+        ├────── Utils.ipynb
+        ├────── interpretability.ipynb
+        └─────── run.ipynb
+├── .gitattributes
+├── .gitignore
+├── .pre-commit-config.yaml
+├── README.md
+├── dev-requirements.txt
+├── pyproject.toml
+└── requirements.txt
+
+The implementation of the models can be found in the /code directory and the files useful for the visualisation of the results in /notebooks . 
+
 ## Setup environment
 
+Make sure that your compilation environment contains the requirements from requirements.txt as well as dev-requirements.txt.
+
+**DATA UPLOAD ?**
+
 ## Quick Start
+
+Once the environment is setup, go in the directory /code and run the command in the terminal `run.py` to see the performance of our best model. 
 
 ## Data access on server
 
