@@ -1,8 +1,14 @@
-# MIPLab-TeamCEE-DeepLearningforBiomed
+# Joint task decoding and brain fingerprinting in the Human Connectome Project
 
- Brain fingerprinting and task classification project
+In collaboration with the Medical Image Processing Lab headed by Prof. Van der Ville and under the supervision of Hamid Behjat. 
 
-## Data access
+The project aims to decode brain fingerprints to identify with high accuracy an individual and the task he is performing between 8 possibilities.
+
+## Setup environment
+
+## Quick Start
+
+## Data access on server
 
 * Server login:
 `ssh username@servername.epfl.ch`
