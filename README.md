@@ -38,7 +38,7 @@ Make sure that your compilation environment contains the requirements from requi
 
 ## Quick Start
 
-Once the environment is setup, go in the directory /code and run the command in the terminal `run.py` to see the performance of our best model. 
+Once the environment is setup, go in the directory `/code` and run the command in the terminal `run.py` to see the performance of our best model. 
 
 ## Data access on server
 
