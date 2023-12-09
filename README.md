@@ -28,7 +28,7 @@ The project aims to decode brain fingerprints to identify with high accuracy an 
         ├── pyproject.toml
         └── requirements.txt
 
-The implementation of the models can be found in the /code directory and the files useful for the visualisation of the results in /notebooks . 
+The implementation of the models can be found in the `/code` directory and the files useful for the visualisation of the results in `/notebooks`. 
 
 ## Setup environment
 
