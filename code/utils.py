@@ -6,23 +6,6 @@ import pandas as pd
 import scipy.io as sio
 from sklearn.model_selection import train_test_split
 
-network_ids_for_plot = {
-    "VIS_LH": np.array([0, 30]),
-    "VIS_RH": np.array([200, 229]),
-    "MOT_LH": np.array([30, 67]),
-    "MOT_RH": np.array([229, 269]),
-    "DAN_LH": np.array([67, 90]),
-    "DAN_RH": np.array([269, 292]),
-    "VAN_LH": np.array([90, 112]),
-    "VAN_RH": np.array([292, 317]),
-    "LBN_LH": np.array([112, 125]),
-    "LBN_RH": np.array([317, 330]),
-    "FPN_LH": np.array([125, 147]),
-    "FPN_RH": np.array([330, 360]),
-    "DMN_LH": np.array([147, 199]),
-    "DMN_RH": np.array([360, 399]),
-}
-
 
 def get_df_raw_data(path, IDs, save_wt_path=False):
     """Returning a train and test dataframe consisting of the pre-processed MRI data and labels for all subjects.
@@ -160,8 +143,206 @@ def balanced_data_shuffle_cv(train_subjects, test_subjects):
     return train_subjects, test_subjects
 
 
+########################
+# Interpretability utils
+########################
+
+
+def get_atlas_mapping(
+    atlas_path="Schaefer2018_400Parcels_7Networks_order_FSLMNI152_2mm.Centroid_RAS.csv",
+):
+    """Returns the atlas mapping."""
+    parcellations_df = pd.read_csv(atlas_path)
+    parcellations_df["Hemisphere"] = np.where(
+        parcellations_df["ROI Name"].str.contains("LH"), "LH", "RH"
+    )
+    # network mapping
+    mapping = {
+        "Vis": "VN",
+        "SomMot": "SMN",
+        "DorsAttn": "DAN",
+        "SalVentAttn": "VAN",
+        "Limbic": "LN",
+        "Cont": "FPN",
+        "Default": "DMN",
+    }
+    mapping_order = {}
+    for i, k in enumerate(mapping.keys()):
+        mapping_order[mapping[k]] = i
+    parcellations_df["Network"] = ""
+    for network in mapping:
+        parcellations_df["Network"] = np.where(
+            parcellations_df["ROI Name"].str.contains(network),
+            mapping[network],
+            parcellations_df["Network"],
+        )
+
+    parcellations_df.sort_values(
+        by=["Network", "Hemisphere"],
+        key=lambda x: x.map(mapping_order),
+        inplace=True,
+    )
+    parcellations_df.reset_index(inplace=True)
+    return parcellations_df
+
+
+def get_mapping():
+    """Returns the mapping between the network names and the network ids."""
+    return {
+        "Vis": "VN",
+        "SomMot": "SMN",
+        "DorsAttn": "DAN",
+        "SalVentAttn": "VAN",
+        "Limbic": "LN",
+        "Cont": "FPN",
+        "Default": "DMN",
+    }
+
+
+def get_network_ids_for_plots(mat_path="Schaefer400Yeo7.mat"):
+    """Returns the indices of the networks for plotting."""
+    mapping = get_mapping()
+    indices_mat = sio.loadmat(mat_path)
+    indices_array_LH = indices_mat["Schaefer400Yeo7"][0][0][0][0][:200]
+    indices_array_RH = indices_mat["Schaefer400Yeo7"][0][0][0][0][200:]
+    # for each unique value, get the first and last index of that value
+    indices_LH = []
+    indices_RH = []
+    for i in np.unique(indices_array_LH):
+        indices_LH.append(
+            [
+                np.where(indices_array_LH == i)[0][0],
+                np.where(indices_array_LH == i)[0][-1],
+            ]
+        )
+    for i in np.unique(indices_array_RH):
+        indices_RH.append(
+            [
+                np.where(indices_array_RH == i)[0][0],
+                np.where(indices_array_RH == i)[0][-1],
+            ]
+        )
+    indices_LH = np.array(indices_LH)
+    indices_LH[1:, 0] = indices_LH[1:, 0] - 1
+    indices_RH = np.array(indices_RH)
+    indices_RH = np.array(indices_RH) + 200
+    indices_RH[1:, 0] = indices_RH[1:, 0] - 1
+    networks_ids_for_plot_LH = {}
+    for i, network in enumerate(indices_LH):
+        networks_ids_for_plot_LH[list(mapping.values())[i] + "_LH"] = network
+    networks_ids_for_plot_RH = {}
+    for i, network in enumerate(indices_RH):
+        networks_ids_for_plot_RH[list(mapping.values())[i] + "_RH"] = network
+    return {**networks_ids_for_plot_LH, **networks_ids_for_plot_RH}
+
+
+def reorder_network_ids_for_plots(networks_ids_for_plot):
+    """Reorders the networks ids for plots."""
+    mapping = get_mapping()
+    networks_ids_for_plot_reordered = {}
+    for i, _network in enumerate(mapping.keys()):
+        networks_ids_for_plot_reordered[
+            list(mapping.values())[i] + "_LH"
+        ] = networks_ids_for_plot[list(mapping.values())[i] + "_LH"]
+        networks_ids_for_plot_reordered[
+            list(mapping.values())[i] + "_RH"
+        ] = networks_ids_for_plot[list(mapping.values())[i] + "_RH"]
+    return networks_ids_for_plot_reordered
+
+
+def make_networks_ids_contiguous(networks_ids_for_plot):
+    """Makes the networks ids contiguous.""."""
+    networks_ids_for_plot_remapped = {}
+    networks_ids_for_plot = reorder_network_ids_for_plots(
+        networks_ids_for_plot
+    )
+    for network, indices in networks_ids_for_plot.items():
+        if network == "VN_LH":
+            previous = indices
+            networks_ids_for_plot_remapped[network] = indices
+            continue
+        start, finish = indices
+        finish - start
+        i = previous[1]
+        networks_ids_for_plot_remapped[network] = [i, i + finish - start]
+        previous = [i, i + finish - start]
+    # networks_ids_for_plot = networks_ids_for_plot_remapped
+    return networks_ids_for_plot_remapped
+
+
+def network_mean(matrix, network_ids=None):
+    """Computes the mean of the matrix for each network."""
+    if network_ids is None:
+        network_ids = get_network_ids_for_plots()
+    mean_matrix = np.zeros_like(matrix)
+    for _k1, v1 in network_ids.items():
+        for _k2, v2 in network_ids.items():
+            mean_matrix[v1[0] : v1[1] + 1, v2[0] : v2[1] + 1] = (
+                matrix[v1[0] : v1[1] + 1, v2[0] : v2[1] + 1].flatten().mean()
+            )
+    return mean_matrix
+
+
+def move_networks_to_adjacent_rows(matrix):
+    """Moves networks to adjacent positions in the matrix for each hemisphere."""
+    matrix_reordered = np.zeros(matrix.shape)
+    networks_ids_for_plot = get_network_ids_for_plots()
+    current_index = 0
+    total_crop_length = 0
+    total_matrix_length = 0
+    for _k, v in networks_ids_for_plot.items():
+        start, finish = v
+        crop = matrix[start:finish, :]
+        # print(f"Moving {start}:{finish} to {current_index}:{current_index+crop.shape[0]}")
+        # print(f"Length of crop: {crop.shape[0]}")
+        total_crop_length += crop.shape[0]
+        matrix_reordered[
+            current_index : current_index + crop.shape[0], :
+        ] = crop
+        # print(f"Length of matrix_reordered: {matrix_reordered[current_index:current_index+crop.shape[0],:].shape[0]}")
+        total_matrix_length += matrix_reordered[
+            current_index : current_index + crop.shape[0], :
+        ].shape[0]
+        current_index += crop.shape[0]
+        # print(f"Total crop length: {total_crop_length}")
+        # print(f"Total matrix_reordered length: {total_matrix_length}")
+    return matrix_reordered
+
+
+def move_networks_to_adjacent_columns(matrix):
+    """Moves networks to adjacent positions in the matrix for each hemisphere."""
+    matrix_reordered = np.zeros(matrix.shape)
+    networks_ids_for_plot = get_network_ids_for_plots()
+    current_index = 0
+    total_crop_length = 0
+    total_matrix_length = 0
+    for _k, v in networks_ids_for_plot.items():
+        start, finish = v
+        crop = matrix[:, start:finish]
+        # print(f"Moving {start}:{finish} to {current_index}:{current_index+crop.shape[1]}")
+        # print(f"Length of crop: {crop.shape[0]}")
+        total_crop_length += crop.shape[1]
+        matrix_reordered[
+            :, current_index : current_index + crop.shape[1]
+        ] = crop
+        # print(f"Length of matrix_reordered: {matrix_reordered[current_index:current_index+crop.shape[0],:].shape[0]}")
+        total_matrix_length += matrix_reordered[
+            :, current_index : current_index + crop.shape[1]
+        ].shape[1]
+        current_index += crop.shape[1]
+        # print(f"Total crop length: {total_crop_length}")
+        # print(f"Total matrix_reordered length: {total_matrix_length}")
+    return matrix_reordered
+
+
+def move_networks_to_adjacent(matrix):
+    """Moves networks to adjacent positions in the matrix for each hemisphere."""
+    matrix = move_networks_to_adjacent_rows(matrix)
+    return move_networks_to_adjacent_columns(matrix)
+
+
 def save_interpretability_array_to_mat(
-    interpretability_array, name="interpretability_array.mat"
+    interpretability_array, name="interpretability_array.mat", mean_axis=1
 ):
     """Saving the interpretability array to a .mat file."""
     hemispheres = ["LH", "RH"]
@@ -185,7 +366,7 @@ def save_interpretability_array_to_mat(
         for i, task in enumerate(task_labels):
             data_dict[task] = attributions_H[i + 1]
         for k, v in data_dict.items():
-            data_dict[k] = np.abs(v).mean(axis=0).mean(axis=1)
+            data_dict[k] = np.abs(v).mean(axis=0).mean(axis=mean_axis)
             print(data_dict[k].shape)
         full_data_dict[hemisphere] = data_dict
     sio.savemat(name, full_data_dict)
