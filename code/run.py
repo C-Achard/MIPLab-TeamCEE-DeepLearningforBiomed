@@ -24,8 +24,8 @@ from utils import balanced_data_shuffle, get_df_raw_data
 ## Data path ##
 
 # DATA_PATH = "C:/Users/emy8/OneDrive/Documents/EPFL/Master/MA3/DeepLbiomed/Project/MIPLab-TeamCEE-DeepLearningforBiomed/DATA"
-DATA_PATH = Path("/media/miplab-nas2/Data3/Hamid/SSBCAPs/HCP100").resolve()
-# DATA_PATH = (Path.cwd().parent / "DATA").resolve()
+# DATA_PATH = Path("/media/miplab-nas2/Data3/Hamid/SSBCAPs/HCP100").resolve()
+DATA_PATH = (Path.cwd().parent / "DATA").resolve()
 print(f"Data path: {DATA_PATH}")
 # DATA_PATH = str(DATA_PATH)
 
@@ -42,7 +42,7 @@ environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 ###-------------------------------------------------------------------------------------------------------------------
 #         hyperparameters
 ###-------------------------------------------------------------------------------------------------------------------
-wandb_run_name = "Linear only LayerNorm"
+wandb_run_name = "TEST_Linear"
 config = {
     # data
     "stratify": True,
@@ -307,43 +307,43 @@ if __name__ == "__main__":
     ###-------------------------------------------------------------------------------------------------------------------
     #         training
     ###-------------------------------------------------------------------------------------------------------------------
-    def training_model(model, wandb_run_name):
-        """Runs the training loop and returns the test stats for the passed model."""
-        criterion = nn.CrossEntropyLoss()
+    # def training_model(model, wandb_run_name):
+    #     """Runs the training loop and returns the test stats for the passed model."""
+    #     criterion = nn.CrossEntropyLoss()
 
-        optimizer = torch.optim.AdamW(
-            model.parameters(),
-            lr=config["lr"],
-            weight_decay=config["weight_decay"],
-        )
-        scheduler = torch.optim.lr_scheduler.StepLR(
-            optimizer, step_size=20, gamma=0.1
-        )
+    #     optimizer = torch.optim.AdamW(
+    #         model.parameters(),
+    #         lr=config["lr"],
+    #         weight_decay=config["weight_decay"],
+    #     )
+    #     scheduler = torch.optim.lr_scheduler.StepLR(
+    #         optimizer, step_size=20, gamma=0.1
+    #     )
 
-        history = training_loop(
-            config["epochs"],
-            model,
-            train_loader,
-            valid_loader,
-            criterion,
-            optimizer,
-            device,
-            config,
-            scheduler=scheduler if config["use_scheduler"] else None,
-            save_model=False,
-            save_attention_weights=True,
-            test_loader=test_loader,
-            run_name=wandb_run_name,
-            use_deeplift=True,
-            use_early_stopping=config["do_early_stopping"],
-        )
+    #     history = training_loop(
+    #         config["epochs"],
+    #         model,
+    #         train_loader,
+    #         valid_loader,
+    #         criterion,
+    #         optimizer,
+    #         device,
+    #         config,
+    #         scheduler=scheduler if config["use_scheduler"] else None,
+    #         save_model=False,
+    #         save_attention_weights=True,
+    #         test_loader=test_loader,
+    #         run_name=wandb_run_name,
+    #         use_deeplift=True,
+    #         use_early_stopping=config["do_early_stopping"],
+    #     )
 
-        return (
-            history["test_acc_si"],
-            history["test_acc_td"],
-            history["test_f1_si"],
-            history["test_f1_td"],
-        )
+    #     return (
+    #         history["test_acc_si"],
+    #         history["test_acc_td"],
+    #         history["test_f1_si"],
+    #         history["test_f1_td"],
+    #     )
 
     ###-------------------------------------------------------------------------------------------------------------------
     #         initializing model
@@ -356,81 +356,81 @@ if __name__ == "__main__":
     device = device_list[-1] if torch.cuda.is_available() else device_list[0]
     print(f"Using device: {device}")
 
-    linear_model_test_performance = []
-    shared_linear_model_test_performance = []
-    mri_attention_model_performance = []
-    EGNNA_attention_model_performance = []
+    # linear_model_test_performance = []
+    # shared_linear_model_test_performance = []
+    # mri_attention_model_performance = []
+    # EGNNA_attention_model_performance = []
 
-    dims = [100, 500, 1000, 1500, 2000, 2500]
+    # dims = [100, 500, 1000, 1500, 2000, 2500]
 
-    for dim in dims:
-        # Linear Model
-        model = LinearLayer(
-            output_size_tasks=NUM_TASKS,
-            output_size_subjects=NUM_SUBJECTS,
-            input_size=config["d_model_input"],
-            intermediate_size=[dim],
-            dropout=config["dropout"],
-        ).to(device)
-        wandb_run_name = (
-            "linear_dim_" + str(dim) + "_" + str(config["dropout"])
-        )
-        linear_model_test_performance.append(
-            [training_model(model, wandb_run_name)]
-        )
+    # for dim in dims:
+    #     # Linear Model
+    #     model = LinearLayer(
+    #         output_size_tasks=NUM_TASKS,
+    #         output_size_subjects=NUM_SUBJECTS,
+    #         input_size=config["d_model_input"],
+    #         intermediate_size=[dim],
+    #         dropout=config["dropout"],
+    #     ).to(device)
+    #     wandb_run_name = (
+    #         "linear_dim_" + str(dim) + "_" + str(config["dropout"])
+    #     )
+    #     linear_model_test_performance.append(
+    #         [training_model(model, wandb_run_name)]
+    #     )
 
-        # Shared Model
-#         model = LinearLayerShared(
-#             output_size_tasks=NUM_TASKS,
-#             output_size_subjects=NUM_SUBJECTS,
-#             input_size=config["d_model_input"],
-#             intermediate_size=[dim],
-#             dropout=config["dropout"],
-#         ).to(device)
-#         wandb_run_name = (
-#             "linear_shared_dim_" + str(dim) + "_" + str(config["dropout"])
-#         )
-#         shared_linear_model_test_performance.append(
-#             [training_model(model, wandb_run_name)]
-#         )
+    #     # Shared Model
+    #     model = LinearLayerShared(
+    #         output_size_tasks=NUM_TASKS,
+    #         output_size_subjects=NUM_SUBJECTS,
+    #         input_size=config["d_model_input"],
+    #         intermediate_size=[dim],
+    #         dropout=config["dropout"],
+    #     ).to(device)
+    # wandb_run_name = (
+    # "linear_shared_dim_" + str(dim) + "_" + str(config["dropout"])
+    # )
+    # shared_linear_model_test_performance.append(
+    #     [training_model(model, wandb_run_name)]
+    # )
 
-#         # Self-Attention model
-#         model = MRIAttention(
-#             output_size_tasks=NUM_TASKS,
-#             output_size_subjects=NUM_SUBJECTS,
-#             input_size=config["d_model_input"],
-#             attention_dropout=config["attention_dropout"],
-#             num_heads=config["num_heads"],
-#             intermediate_size=dim,
-#             dropout=config["dropout"],
-#         ).to(device)
-#         wandb_run_name = (
-#             "mri_attention_dim_" + str(dim) + "_" + str(config["dropout"])
-#         )
-#         mri_attention_model_performance.append(
-#             [training_model(model, wandb_run_name)]
-#         )
+    #         # Self-Attention model
+    #         model = MRIAttention(
+    #             output_size_tasks=NUM_TASKS,
+    #             output_size_subjects=NUM_SUBJECTS,
+    #             input_size=config["d_model_input"],
+    #             attention_dropout=config["attention_dropout"],
+    #             num_heads=config["num_heads"],
+    #             intermediate_size=dim,
+    #             dropout=config["dropout"],
+    #         ).to(device)
+    #         wandb_run_name = (
+    #             "mri_attention_dim_" + str(dim) + "_" + str(config["dropout"])
+    #         )
+    #         mri_attention_model_performance.append(
+    #             [training_model(model, wandb_run_name)]
+    #         )
 
-#         # Custom EGNNA model
-#         model = MRICustomAttention(
-#             output_size_subjects=NUM_SUBJECTS,
-#             output_size_tasks=NUM_TASKS,
-#             input_size=config["d_model_input"],
-#             attention_dropout=config["attention_dropout"],
-#             intermediate_size=dim,
-#             intermediate_dropout=config["dropout"],
-#         ).to(device)
-#         wandb_run_name = (
-#             "EGNNA_attention_dim_" + str(dim) + "_" + str(config["dropout"])
-#         )
-#         EGNNA_attention_model_performance.append(
-#             [training_model(model, wandb_run_name)]
-#         )
+    #         # Custom EGNNA model
+    #         model = MRICustomAttention(
+    #             output_size_subjects=NUM_SUBJECTS,
+    #             output_size_tasks=NUM_TASKS,
+    #             input_size=config["d_model_input"],
+    #             attention_dropout=config["attention_dropout"],
+    #             intermediate_size=dim,
+    #             intermediate_dropout=config["dropout"],
+    #         ).to(device)
+    #         wandb_run_name = (
+    #             "EGNNA_attention_dim_" + str(dim) + "_" + str(config["dropout"])
+    #         )
+    #         EGNNA_attention_model_performance.append(
+    #             [training_model(model, wandb_run_name)]
+    #         )
 
-# print(linear_model_test_performance)
-# print(shared_linear_model_test_performance)
-# print(mri_attention_model_performance)
-# print(EGNNA_attention_model_performance)
+    # print(linear_model_test_performance)
+    # print(shared_linear_model_test_performance)
+    # print(mri_attention_model_performance)
+    # print(EGNNA_attention_model_performance)
     # model = MRICustomAttention(
     #     output_size_subjects=NUM_SUBJECTS,
     #     output_size_tasks=NUM_TASKS,
@@ -440,13 +440,13 @@ if __name__ == "__main__":
     #     intermediate_dropout=config["dropout"],
     # ).to(device)
 
-    # model = LinearLayer(
-    # output_size_tasks=9,
-    # output_size_subjects=NUM_SUBJECTS,
-    # input_size=config["d_model_input"],
-    # intermediate_size=[1024],
-    # dropout=config["dropout"],
-    # ).to(device)
+    model = LinearLayerShared(
+        output_size_tasks=NUM_TASKS,
+        output_size_subjects=NUM_SUBJECTS,
+        input_size=config["d_model_input"],
+        intermediate_size=[1024],
+        dropout=config["dropout"],
+    ).to(device)
 
     # x = torch.randn(1, 400, 400)
     # y = model(x.to(device))

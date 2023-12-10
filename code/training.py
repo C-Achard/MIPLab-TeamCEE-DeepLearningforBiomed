@@ -378,7 +378,7 @@ def training_loop(
     if use_deeplift:  # MUST BE KEPT AS LAST STEP
         attributions = []
         print("Running DeepLIFT")
-        model.eval()
+        # model.eval()
         model._deeplift_mode = "si"
         dl = DeepLift(model)
         # print("Input shape : ", p_matrix.shape)
@@ -386,7 +386,6 @@ def training_loop(
         # print("Baseline shape : ", baseline.shape)
         attributions_si = dl.attribute(
             inputs=p_matrix,
-            # baseline is mean of all inputs repeated batch_size times
             baselines=torch.zeros_like(p_matrix),
             # baselines=baseline,
             target=0,
