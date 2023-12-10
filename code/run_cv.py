@@ -165,7 +165,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 print()
 
-criterion = nn.CrossEntropyLoss()
+# criterion = nn.CrossEntropyLoss()
 
 config = {
     # general

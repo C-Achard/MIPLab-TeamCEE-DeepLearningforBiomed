@@ -36,7 +36,6 @@ def training_loop_and_cross_validation(
             data_df_train["enc_task_id"].to_numpy(),
         )
     ):
-        # erstelllen von dingens
         CV_train_df = pd.DataFrame(
             {
                 "mat": data_df_train["mat"][train_index],

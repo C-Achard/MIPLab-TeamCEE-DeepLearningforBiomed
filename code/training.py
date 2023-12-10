@@ -22,8 +22,8 @@ except ImportError:
     WANDB_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
-# logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 def training_loop(
@@ -100,11 +100,12 @@ def training_loop(
                 final_epoch_attention_weights.append(attention_weights)
 
             # create heatmap from attention weights and log to wandb
-            if (WANDB_AVAILABLE
-            and epoch % 20 == 0
-            and _i == 0
-            and save_attention_weights
-            and attention_weights.nelement() != 0
+            if (
+                WANDB_AVAILABLE
+                and epoch % 20 == 0
+                and _i == 0
+                and save_attention_weights
+                and attention_weights.nelement() != 0
             ):
                 try:
                     heatmap_att = sns.heatmap(
@@ -121,7 +122,9 @@ def training_loop(
                     wb.log({"Att/attention_weights": wb.Image(heatmap_att)})
                 except:
                     print("Could not create heatmap from attention weights.")
-                    print("Turn off save_attention_weights to avoid this error.")
+                    print(
+                        "Turn off save_attention_weights to avoid this error."
+                    )
                 # heatmap_att_output = sns.heatmap(
                 #     np.mean(
                 #         torch.matmul(attention_weights, p_matrix).squeeze().detach().cpu().numpy(),
@@ -216,6 +219,17 @@ def training_loop(
                 + f" - acc: SI {train_acc_si:.2f}% / TD {train_acc_td:.2f}%\n"
                 + f" - ({time.time()-start_epoch:.2f}s/epoch)"
             )
+            if (
+                save_model
+                and train_acc_si > history["acc_si"][-1]
+                and train_acc_td > history["acc_td"][-1]
+            ):
+                torch.save(model.state_dict(), "best_train_model.pth")
+                if WANDB_AVAILABLE:
+                    try:
+                        wb.save(f"{run_name}_Best_model_epoch_{epoch}.pth")
+                    except:
+                        print("Could not save model to wandb")
         else:
             # Validation
             (
@@ -345,7 +359,10 @@ def training_loop(
     if save_model:
         torch.save(model.state_dict(), f"{run_name}_model.pth")
         if WANDB_AVAILABLE:
-            wb.save(f"{run_name}_model.pth")
+            try:
+                wb.save(f"{run_name}_model.pth")
+            except:
+                print("Could not save model to wandb")
 
     if save_attention_weights:
         if not len(final_epoch_attention_weights):
@@ -353,8 +370,11 @@ def training_loop(
         final_epoch_attention_weights_save = (
             torch.cat(final_epoch_attention_weights).detach().cpu().numpy()
         )
-        np.save(f"{run_name}_attention_weights.npy", final_epoch_attention_weights_save)
-        
+        np.save(
+            f"{run_name}_attention_weights.npy",
+            final_epoch_attention_weights_save,
+        )
+
     if use_deeplift:  # MUST BE KEPT AS LAST STEP
         attributions = []
         print("Running DeepLIFT")

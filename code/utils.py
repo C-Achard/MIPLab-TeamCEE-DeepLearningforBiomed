@@ -1,9 +1,27 @@
 """Functions for data import."""
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import scipy.io as sio
 from sklearn.model_selection import train_test_split
+
+network_ids_for_plot = {
+    "VIS_LH": np.array([0, 30]),
+    "VIS_RH": np.array([200, 229]),
+    "MOT_LH": np.array([30, 67]),
+    "MOT_RH": np.array([229, 269]),
+    "DAN_LH": np.array([67, 90]),
+    "DAN_RH": np.array([269, 292]),
+    "VAN_LH": np.array([90, 112]),
+    "VAN_RH": np.array([292, 317]),
+    "LBN_LH": np.array([112, 125]),
+    "LBN_RH": np.array([317, 330]),
+    "FPN_LH": np.array([125, 147]),
+    "FPN_RH": np.array([330, 360]),
+    "DMN_LH": np.array([147, 199]),
+    "DMN_RH": np.array([360, 399]),
+}
 
 
 def get_df_raw_data(path, IDs, save_wt_path=False):
@@ -140,3 +158,34 @@ def balanced_data_shuffle_cv(train_subjects, test_subjects):
                 f"Moved {len(subject_tasks)} tasks from subject {subject} to the train set"
             )
     return train_subjects, test_subjects
+
+
+def save_interpretability_array_to_mat(
+    interpretability_array, name="interpretability_array.mat"
+):
+    """Saving the interpretability array to a .mat file."""
+    hemispheres = ["LH", "RH"]
+    full_data_dict = {}
+    for hemisphere in hemispheres:
+        if hemisphere == "LH":
+            attributions_H = interpretability_array[:, :, :200, :200]
+        else:
+            attributions_H = interpretability_array[:, :, 200:, 200:]
+        task_labels = [
+            "REST1",
+            "EMOTION",
+            "GAMBLING",
+            "LANGUAGE",
+            "MOTOR",
+            "RELATIONAL",
+            "SOCIAL",
+            "WM",
+        ]
+        data_dict = {"subject": attributions_H[0]}
+        for i, task in enumerate(task_labels):
+            data_dict[task] = attributions_H[i + 1]
+        for k, v in data_dict.items():
+            data_dict[k] = np.abs(v).mean(axis=0).mean(axis=1)
+            print(data_dict[k].shape)
+        full_data_dict[hemisphere] = data_dict
+    sio.savemat(name, full_data_dict)
