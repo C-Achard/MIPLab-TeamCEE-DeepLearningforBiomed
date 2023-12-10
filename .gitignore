@@ -161,3 +161,5 @@ code/attributions.pkl
 .DS_Store
 code/attributions.npy
 code/cv_run.txt
+*.npy
+notebooks/Schaefer400Yeo7.mat

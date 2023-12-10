@@ -100,24 +100,28 @@ def training_loop(
                 final_epoch_attention_weights.append(attention_weights)
 
             # create heatmap from attention weights and log to wandb
-            if (
-                WANDB_AVAILABLE
-                and epoch % 20 == 0
-                and _i == 0
-                and attention_weights.nelement() != 0
+            if (WANDB_AVAILABLE
+            and epoch % 20 == 0
+            and _i == 0
+            and save_attention_weights
+            and attention_weights.nelement() != 0
             ):
-                heatmap_att = sns.heatmap(
-                    np.mean(
-                        attention_weights.squeeze().detach().cpu().numpy(),
-                        axis=0,
-                    ),
-                    annot=False,
-                    cmap="turbo",
-                    xticklabels=False,
-                    yticklabels=False,
-                    cbar=False,
-                )
-                wb.log({"Att/attention_weights": wb.Image(heatmap_att)})
+                try:
+                    heatmap_att = sns.heatmap(
+                        np.mean(
+                            attention_weights.squeeze().detach().cpu().numpy(),
+                            axis=0,
+                        ),
+                        annot=False,
+                        cmap="turbo",
+                        xticklabels=False,
+                        yticklabels=False,
+                        cbar=False,
+                    )
+                    wb.log({"Att/attention_weights": wb.Image(heatmap_att)})
+                except:
+                    print("Could not create heatmap from attention weights.")
+                    print("Turn off save_attention_weights to avoid this error.")
                 # heatmap_att_output = sns.heatmap(
                 #     np.mean(
                 #         torch.matmul(attention_weights, p_matrix).squeeze().detach().cpu().numpy(),
@@ -339,9 +343,9 @@ def training_loop(
             }
         )
     if save_model:
-        torch.save(model.state_dict(), "model.pth")
+        torch.save(model.state_dict(), f"{run_name}_model.pth")
         if WANDB_AVAILABLE:
-            wb.save("model.pth")
+            wb.save(f"{run_name}_model.pth")
 
     if save_attention_weights:
         if not len(final_epoch_attention_weights):
@@ -349,17 +353,22 @@ def training_loop(
         final_epoch_attention_weights_save = (
             torch.cat(final_epoch_attention_weights).detach().cpu().numpy()
         )
-        np.save("attention_weights.npy", final_epoch_attention_weights_save)
-
+        np.save(f"{run_name}_attention_weights.npy", final_epoch_attention_weights_save)
+        
     if use_deeplift:  # MUST BE KEPT AS LAST STEP
         attributions = []
         print("Running DeepLIFT")
         model.eval()
         model._deeplift_mode = "si"
         dl = DeepLift(model)
+        # print("Input shape : ", p_matrix.shape)
+        # baseline = torch.mean(p_matrix, dim=0).unsqueeze(0).repeat(p_matrix.shape[0], 1, 1)
+        # print("Baseline shape : ", baseline.shape)
         attributions_si = dl.attribute(
             inputs=p_matrix,
+            # baseline is mean of all inputs repeated batch_size times
             baselines=torch.zeros_like(p_matrix),
+            # baselines=baseline,
             target=0,
         )
         print("SI attributions shape : ", attributions_si.shape)
@@ -370,13 +379,14 @@ def training_loop(
             dl = DeepLift(model)
             attributions_td = dl.attribute(
                 inputs=p_matrix,
+                # baselines=torch.mean(p_matrix, dim=0).unsqueeze(0).repeat(p_matrix.shape[0], 1, 1),
                 baselines=torch.zeros_like(p_matrix),
                 target=i,
             )
             print("TD attributions shape : ", attributions_td.shape)
             attributions.append(attributions_td.detach().cpu().numpy())
         attributions = np.stack(attributions)
-        np.save("attributions.npy", attributions)
+        np.save(f"{run_name}_attributions.npy", attributions)
 
     if WANDB_AVAILABLE:
         wb.finish()

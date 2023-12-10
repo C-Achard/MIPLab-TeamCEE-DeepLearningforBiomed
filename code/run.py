@@ -42,6 +42,7 @@ environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 ###-------------------------------------------------------------------------------------------------------------------
 #         hyperparameters
 ###-------------------------------------------------------------------------------------------------------------------
+wandb_run_name = "Linear only LayerNorm"
 config = {
     # data
     "stratify": True,
@@ -50,13 +51,13 @@ config = {
     "epochs": 25,
     "batch_size": 32,
     "lr": 1e-4,
-    "use_scheduler": True,
+    "use_scheduler": False,
     "do_early_stopping": False,
     "patience": 10,
     "best_loss": 10,
     # model
     "d_model_input": 400,
-    "d_model_intermediate": 2048,
+    "d_model_intermediate": 1024,
     "d_model_task_output": 8,
     "d_model_fingerprint_output": None,  # needs to be determined from data
     "dropout": 0.0,
@@ -379,54 +380,111 @@ if __name__ == "__main__":
         )
 
         # Shared Model
-        model = LinearLayerShared(
-            output_size_tasks=NUM_TASKS,
-            output_size_subjects=NUM_SUBJECTS,
-            input_size=config["d_model_input"],
-            intermediate_size=[dim],
-            dropout=config["dropout"],
-        ).to(device)
-        wandb_run_name = (
-            "linear_shared_dim_" + str(dim) + "_" + str(config["dropout"])
-        )
-        shared_linear_model_test_performance.append(
-            [training_model(model, wandb_run_name)]
-        )
+#         model = LinearLayerShared(
+#             output_size_tasks=NUM_TASKS,
+#             output_size_subjects=NUM_SUBJECTS,
+#             input_size=config["d_model_input"],
+#             intermediate_size=[dim],
+#             dropout=config["dropout"],
+#         ).to(device)
+#         wandb_run_name = (
+#             "linear_shared_dim_" + str(dim) + "_" + str(config["dropout"])
+#         )
+#         shared_linear_model_test_performance.append(
+#             [training_model(model, wandb_run_name)]
+#         )
 
-        # Self-Attention model
-        model = MRIAttention(
-            output_size_tasks=NUM_TASKS,
-            output_size_subjects=NUM_SUBJECTS,
-            input_size=config["d_model_input"],
-            attention_dropout=config["attention_dropout"],
-            num_heads=config["num_heads"],
-            intermediate_size=dim,
-            dropout=config["dropout"],
-        ).to(device)
-        wandb_run_name = (
-            "mri_attention_dim_" + str(dim) + "_" + str(config["dropout"])
-        )
-        mri_attention_model_performance.append(
-            [training_model(model, wandb_run_name)]
-        )
+#         # Self-Attention model
+#         model = MRIAttention(
+#             output_size_tasks=NUM_TASKS,
+#             output_size_subjects=NUM_SUBJECTS,
+#             input_size=config["d_model_input"],
+#             attention_dropout=config["attention_dropout"],
+#             num_heads=config["num_heads"],
+#             intermediate_size=dim,
+#             dropout=config["dropout"],
+#         ).to(device)
+#         wandb_run_name = (
+#             "mri_attention_dim_" + str(dim) + "_" + str(config["dropout"])
+#         )
+#         mri_attention_model_performance.append(
+#             [training_model(model, wandb_run_name)]
+#         )
 
-        # Custom EGNNA model
-        model = MRICustomAttention(
-            output_size_subjects=NUM_SUBJECTS,
-            output_size_tasks=NUM_TASKS,
-            input_size=config["d_model_input"],
-            attention_dropout=config["attention_dropout"],
-            intermediate_size=dim,
-            intermediate_dropout=config["dropout"],
-        ).to(device)
-        wandb_run_name = (
-            "EGNNA_attention_dim_" + str(dim) + "_" + str(config["dropout"])
-        )
-        EGNNA_attention_model_performance.append(
-            [training_model(model, wandb_run_name)]
-        )
+#         # Custom EGNNA model
+#         model = MRICustomAttention(
+#             output_size_subjects=NUM_SUBJECTS,
+#             output_size_tasks=NUM_TASKS,
+#             input_size=config["d_model_input"],
+#             attention_dropout=config["attention_dropout"],
+#             intermediate_size=dim,
+#             intermediate_dropout=config["dropout"],
+#         ).to(device)
+#         wandb_run_name = (
+#             "EGNNA_attention_dim_" + str(dim) + "_" + str(config["dropout"])
+#         )
+#         EGNNA_attention_model_performance.append(
+#             [training_model(model, wandb_run_name)]
+#         )
 
-print(linear_model_test_performance)
-print(shared_linear_model_test_performance)
-print(mri_attention_model_performance)
-print(EGNNA_attention_model_performance)
+# print(linear_model_test_performance)
+# print(shared_linear_model_test_performance)
+# print(mri_attention_model_performance)
+# print(EGNNA_attention_model_performance)
+    # model = MRICustomAttention(
+    #     output_size_subjects=NUM_SUBJECTS,
+    #     output_size_tasks=NUM_TASKS,
+    #     input_size=config["d_model_input"],
+    #     attention_dropout=config["attention_dropout"],
+    #     intermediate_size=config["d_model_intermediate"],
+    #     intermediate_dropout=config["dropout"],
+    # ).to(device)
+
+    # model = LinearLayer(
+    # output_size_tasks=9,
+    # output_size_subjects=NUM_SUBJECTS,
+    # input_size=config["d_model_input"],
+    # intermediate_size=[1024],
+    # dropout=config["dropout"],
+    # ).to(device)
+
+    # x = torch.randn(1, 400, 400)
+    # y = model(x.to(device))
+
+    # x_si, x_td, attn_weights
+    # print(y[0].size())
+    # print(y[1].size())
+    # print(y[2].size())
+
+    #
+    ###-------------------------------------------------------------------------------------------------------------------
+    #         training
+    ###-------------------------------------------------------------------------------------------------------------------
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.AdamW(
+        model.parameters(),
+        lr=config["lr"],
+        weight_decay=config["weight_decay"],
+    )
+    scheduler = torch.optim.lr_scheduler.StepLR(
+        optimizer, step_size=20, gamma=0.1
+    )
+
+    training_loop(
+        config["epochs"],
+        model,
+        train_loader,
+        valid_loader,
+        criterion,
+        optimizer,
+        device,
+        config,
+        scheduler=scheduler if config["use_scheduler"] else None,
+        save_model=False,
+        save_attention_weights=False,
+        test_loader=test_loader,
+        run_name=wandb_run_name,
+        use_deeplift=True,
+        use_early_stopping=config["do_early_stopping"],
+    )

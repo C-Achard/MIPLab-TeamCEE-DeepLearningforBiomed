@@ -365,6 +365,8 @@ class MRIAttention(nn.Module):
         else:
             x = x_att
             x = rearrange(x, "b h w -> b (h w)")
+        # attn_weights = torch.zeros(x.shape[0], self.num_heads, x.shape[1], x.shape[1])
+        # x = rearrange(x, "b h w -> b (h w)")
 
         logger.debug(f"multihead_attention: {x.shape}")
         ## Intermediate layers ##
@@ -385,8 +387,8 @@ class MRIAttention(nn.Module):
         """
         print("deeplift mode")
         print("x in", x.shape)
-        x, _ = self.multihead_attention(x, x, x)
-        x = nn.Dropout(self.attention_dropout)(x)
+        # x, _ = self.multihead_attention(x, x, x)
+        # x = nn.Dropout(self.attention_dropout)(x)
         x = rearrange(x, "b h w -> b (h w)")
         x = self.intermediate(x)
         x = self.intermediate_norm(x)
