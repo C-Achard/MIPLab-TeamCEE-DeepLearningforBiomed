@@ -1,46 +1,52 @@
 # Joint task decoding and brain fingerprinting in the Human Connectome Project
 
-In collaboration with the Medical Image Processing Lab headed by Prof. Van der Ville and under the supervision of Hamid Behjat. 
+In collaboration with the Medical Image Processing Lab headed by Prof. Van der Ville and under the supervision of Hamid Behjat.
 
 The project aims to decode brain fingerprints to identify with high accuracy an individual and the task he is performing between 8 possibilities.
+
+## Data
+
+The dataset, weights and other files are available at the following link : [DRIVE](https://drive.google.com/drive/folders/1IIhq2hCqzllpcvsiw3aTDlshQc6jvX5W?usp=sharing)
+
+        Drive                            # Main directory
+
+        ├── subjects_all.tar.gz          # Full dataset, put in DATA folder
+        ├── INTERPRETABILITY             # Interpretability results, mostly .mat files used for the visualisation
+        ├── WEIGHTS                      # Weights of the models from the best runs
+        ├── Misc files                   # Miscellaneous files for plots
 
 ## Directory Layout
 
         Directory                           # Main directory
-        
+
         ├── code
                 ├────── cross_validation.py
                 ├────── models.py
                 ├────── run.py
                 ├────── run_cv.py
                 ├────── training.py
-                └────── utils.py                     
-        ├── notebooks
-                ├────── Schaefer2018_400Parcels_7Networks_order_FSLMNI152_2mm.Centroid_RAS.csv
-                ├────── Utils.ipynb
-                ├────── interpretability.ipynb
-                └─────── run.ipynb
-        ├── .gitattributes
+                └────── utils.py
+        ├── notebooks                      # Notebooks for the best runs and interpretability results
         ├── .gitignore
-        ├── .pre-commit-config.yaml
         ├── README.md
-        ├── dev-requirements.txt
         ├── pyproject.toml
         └── requirements.txt
 
-The implementation of the models can be found in the `/code` directory and the files useful for the visualisation of the results in `/notebooks`. 
+The implementation of the models can be found in the `/code` directory.
+
+The best model notebooks, interpretability notebooks as well as files useful for the visualisation of the results are in `/notebooks`.
 
 ## Setup environment
 
-Make sure that your compilation environment contains the requirements from requirements.txt as well as dev-requirements.txt.
-
-**DATA UPLOAD ?**
+Make sure that your environment contains the requirements from requirements.txt.
 
 ## Quick Start
 
-Once the environment is setup, go in the directory `/code` and run the command in the terminal `run.py` to see the performance of our best model. 
+Once the environment is setup, go in the directory `/notebooks` and run the notebok for each model to reproduce the results.
 
-## Data access on server
+## Other information
+
+### Data access on server
 
 * Server login:
 `ssh username@servername.epfl.ch`
@@ -56,7 +62,7 @@ where username is your Gaspar username; enter your Gaspar password when requeste
     **Results folder** :
     `/media/miplab-nas2/Data3/Hamid_TeamCEE`
 
-## Setup
+### Dev setup
 
 * Install pre-commit :
 
@@ -69,7 +75,7 @@ Your commits will now be checked by pre-commit.
 
     `pip install black[jupyter]`
 
-## Useful commands for the server
+### Useful commands for the server
 
 * Upload on the server:
 
