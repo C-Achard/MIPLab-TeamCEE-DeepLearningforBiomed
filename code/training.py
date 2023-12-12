@@ -62,7 +62,9 @@ def training_loop(
         "test_f1_si": [],
         "test_f1_td": [],
     }
+
     print(f"Using {device}")
+
     if WANDB_AVAILABLE:
         if run_name is not None:
             wb.init(
@@ -85,15 +87,18 @@ def training_loop(
         start_epoch = time.time()
         loss_si, train_loss_td, total_loss, acc_si, acc_td = 0, 0, 0, 0, 0
         final_epoch_attention_weights = []
-        # Training
+
+        # training
         model.train()
         for _i, batch in enumerate(train_loader):
             optimizer.zero_grad()
 
+            # get input and labels
             p_matrix = batch[0].to(device)
             label_target_ids = batch[1].to(device)
             task_target_ids = batch[2].to(device)
 
+            # compute model output
             logits_si, logits_td, attention_weights = model(p_matrix)
             if epoch == epochs:
                 final_epoch_attention_weights.append(attention_weights)
@@ -124,23 +129,14 @@ def training_loop(
                     print(
                         "Turn off save_attention_weights to avoid this error."
                     )
-                # heatmap_att_output = sns.heatmap(
-                #     np.mean(
-                #         torch.matmul(attention_weights, p_matrix).squeeze().detach().cpu().numpy(),
-                #         axis=0
-                #     ),
-                #     annot=False,
-                #     cmap="turbo",
-                #     xticklabels=False,
-                #     yticklabels=False,
-                #     cbar=False
-                # )
-                # wb.log({"Att/attention_output": wb.Image(heatmap_att_output)})
 
-            loss_si_c = criterion(
-                logits_si, label_target_ids.long()
-            )  # TODO(eddy) : maybe check the types ? Had to use .long() to avoid error
+            # get subject identification loss
+            loss_si_c = criterion(logits_si, label_target_ids.long())
+
+            # get task decoding loss
             loss_td_c = criterion(logits_td, task_target_ids.long())
+
+            # combine losses
             total_loss_c = (
                 loss_si_c * config["lambda_si"]
                 + loss_td_c * config["lambda_td"]
@@ -149,6 +145,7 @@ def training_loop(
             loss_si += loss_si_c.item()
             train_loss_td += loss_td_c.item()
             total_loss += total_loss_c.item()
+
             if WANDB_AVAILABLE:
                 wb.log(
                     {
@@ -158,17 +155,11 @@ def training_loop(
                     }
                 )
 
-            # logger.debug(f"{label_target_ids.shape}")
-            # logger.debug(f"{logits_si.shape}")
-            # logger.debug(f"{logits_td.shape}")
-
+            # get predictions
             pred_si = F.softmax(logits_si, dim=1).detach().cpu().numpy()
             pred_td = F.softmax(logits_td, dim=1).detach().cpu().numpy()
 
-            # logger.debug(f"Pred SI for acc : {pred_si.shape}")
-            # logger.debug(f"Pred TD for acc : {pred_td.shape}")
-            # logger.debug(f"Preds SI : {pred_si}")
-
+            # compute accuracy
             acc_si += accuracy_score(
                 y_true=label_target_ids.detach().cpu().squeeze().numpy(),
                 y_pred=np.argmax(pred_si, axis=1),
@@ -178,13 +169,16 @@ def training_loop(
                 y_pred=np.argmax(pred_td, axis=1),
             )
 
+            # training iteration
             total_loss_c.backward()
             optimizer.step()
+
         if scheduler is not None:
             scheduler.step()
             if WANDB_AVAILABLE:
                 wb.log({"LR/LR": optimizer.param_groups[0]["lr"]})
 
+        # get results per epoch
         train_loss_total = total_loss / len(train_loader)
         train_loss_si = loss_si / len(train_loader)
         train_loss_td = train_loss_td / len(train_loader)
@@ -212,7 +206,9 @@ def training_loop(
         history["loss_si"].append(train_loss_si)
         history["loss_td"].append(train_loss_td)
         history["acc_si"].append(train_acc_si)
+
         if valid_loader is None:
+            # print epoch results
             print(
                 f"Epoch: {epoch}/{epochs} - loss_total: {train_loss_total:.4f}"
                 + f" - acc: SI {train_acc_si:.2f}% / TD {train_acc_td:.2f}%\n"
@@ -230,7 +226,7 @@ def training_loop(
                     except:
                         print("Could not save model to wandb")
         else:
-            # Validation
+            # validation
             (
                 val_loss_total,
                 val_loss_si,
@@ -241,7 +237,7 @@ def training_loop(
                 val_f1_td,
             ) = evaluate(model, valid_loader, criterion, device, config)
 
-            # Early stopping to avoid overfitting
+            # early stopping to avoid overfitting
             if use_early_stopping:
                 if val_loss_total < config["best_loss"]:
                     config["best_loss"] = val_loss_total
@@ -275,7 +271,7 @@ def training_loop(
                 if WANDB_AVAILABLE:
                     wb.save("best_val_model.pth")
 
-            # Logging
+            # logging
             history["val-loss_total"].append(val_loss_total)
             history["val-loss_si"].append(val_loss_si)
             history["val-loss_td"].append(val_loss_td)
@@ -292,6 +288,7 @@ def training_loop(
             )
 
     if test_loader is not None:
+        # testing
         (
             (
                 test_loss_total,
@@ -312,12 +309,15 @@ def training_loop(
             config,
             return_preds_td=True,
         )
+
+        # print test loss
         print("_" * 30)
         print(
             f"Final test loss: {test_loss_total:.4f} - acc: SI {test_acc_si:.2f}% / TD {test_acc_td:.2f}% - f1: SI {test_f1_si:.4f} / TD {test_f1_td:.4f}"
         )
         print("_" * 30)
 
+        # logging
         history["test_acc_si"] = test_acc_si
         history["test_acc_td"] = test_acc_td
         history["test_f1_si"] = test_f1_si
@@ -335,6 +335,7 @@ def training_loop(
                     "Test/f1_td": test_f1_td,
                 }
             )
+
         task_labels = [
             "REST1",
             "EMOTION",
@@ -345,6 +346,7 @@ def training_loop(
             "SOCIAL",
             "WM",
         ]
+
         wb.log(
             {
                 "Test/confusion_matrix": wb.plot.confusion_matrix(
@@ -355,6 +357,7 @@ def training_loop(
                 )
             }
         )
+
     if save_model:
         torch.save(model.state_dict(), f"{run_name}_model.pth")
         if WANDB_AVAILABLE:
@@ -374,15 +377,12 @@ def training_loop(
             final_epoch_attention_weights_save,
         )
 
-    if use_deeplift:  # MUST BE KEPT AS LAST STEP
+    if use_deeplift:
         attributions = []
         print("Running DeepLIFT")
         model.eval()
         model._deeplift_mode = "si"
         dl = DeepLift(model)
-        # print("Input shape : ", p_matrix.shape)
-        # baseline = torch.mean(p_matrix, dim=0).unsqueeze(0).repeat(p_matrix.shape[0], 1, 1)
-        # print("Baseline shape : ", baseline.shape)
         attributions_si = dl.attribute(
             inputs=p_matrix,
             # baseline is mean of all inputs repeated batch_size times
@@ -398,7 +398,6 @@ def training_loop(
             dl = DeepLift(model)
             attributions_td = dl.attribute(
                 inputs=p_matrix,
-                # baselines=torch.mean(p_matrix, dim=0).unsqueeze(0).repeat(p_matrix.shape[0], 1, 1),
                 baselines=torch.zeros_like(p_matrix),
                 target=i,
             )
@@ -422,7 +421,7 @@ def evaluate(
     config,
     return_preds_td=False,
 ):
-    """Evaluate the model on the dataloader."""
+    """Evaluate the model on the dataloader object (test or validation)."""
     loss_si, loss_td, total_loss, acc_si, acc_td = 0, 0, 0, 0, 0
     f1_si, f1_td = 0, 0
     model.eval()
@@ -433,12 +432,15 @@ def evaluate(
 
     with torch.no_grad():
         for batch in loader:
+            # get input and labels
             p_matrix = batch[0].to(device)
             label_target_ids = batch[1].to(device)
             task_target_ids = batch[2].to(device)
 
+            # compute model output
             logits_si, logits_td, _ = model(p_matrix)
 
+            # compute combined loss
             loss_si_c = criterion(logits_si, label_target_ids.long())
             loss_td_c = criterion(logits_td, task_target_ids.long())
             total_loss_c = (
@@ -450,9 +452,11 @@ def evaluate(
             loss_td += loss_td_c.item()
             total_loss += total_loss_c.item()
 
+            # get predictions
             pred_si = F.softmax(logits_si, dim=1).detach().cpu().numpy()
             pred_td = F.softmax(logits_td, dim=1).detach().cpu().numpy()
 
+            # compute accuracy and f1 for both tasks
             acc_si += accuracy_score(
                 y_true=label_target_ids.detach().cpu().squeeze().numpy(),
                 y_pred=np.argmax(pred_si, axis=1),
@@ -478,6 +482,7 @@ def evaluate(
                 )
                 preds_td.append(np.argmax(pred_td, axis=1))
 
+        # compute total results for all batches
         val_loss_total = total_loss / len(loader)
         val_loss_si = loss_si / len(loader)
         val_loss_td = loss_td / len(loader)
