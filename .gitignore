@@ -152,7 +152,7 @@ cython_debug/
 #.idea/
 
 # Local subject data
-/DATA/
+/DATA/*
 /notebooks/wandb/
 /code/wandb/
 code/attention_weights.npy
@@ -165,3 +165,5 @@ code/cv_run.txt
 notebooks/Schaefer400Yeo7.mat
 *.pth
 /notebooks/results/
+
+!DATA/__init__.py
