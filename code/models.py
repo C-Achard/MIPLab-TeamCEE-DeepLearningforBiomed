@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 class LinearLayer(nn.Module):
-    """Linear layer with dropout and layer normalization."""
+    """Linear layer with split layers for both tasks, dropout and layer normalization."""
 
     def __init__(
         self,
@@ -164,7 +164,7 @@ class LinearLayer(nn.Module):
 
 
 class LinearLayerShared(nn.Module):
-    """Shared linear layer with dropout and layer normalization."""
+    """Linear layer with shared layers for both tasks, dropout and layer normalization."""
 
     def __init__(
         self,
