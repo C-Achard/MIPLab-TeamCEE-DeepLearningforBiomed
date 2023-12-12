@@ -91,12 +91,13 @@ def training_loop_and_cross_validation(
 
             print("Current parameters: " + str(properties))
 
-            # Get model configurations
+            # get model configurations
             learning_rate = properties[0]
             dropout = properties[1]
             intermediate_size = properties[2]
             layer_norm = properties[3]
 
+            # initialize models
             linear_model_split_layers = LinearLayer(
                 output_size_tasks=9,
                 output_size_subjects=config["num_subjects"],
@@ -115,6 +116,7 @@ def training_loop_and_cross_validation(
                 layer_norm=layer_norm,
             ).to(device)
 
+            # initialize optimizers
             optimizer_split = torch.optim.AdamW(
                 linear_model_split_layers.parameters(), lr=learning_rate
             )
@@ -122,6 +124,7 @@ def training_loop_and_cross_validation(
                 linear_model_shared_layers.parameters(), lr=learning_rate
             )
 
+            # train models
             history_split = training_loop(
                 config["epochs"],
                 linear_model_split_layers,
@@ -156,6 +159,7 @@ def training_loop_and_cross_validation(
                 + str(_k),
             )
 
+            # store results
             current_cv_losses_linear_split_model.append(
                 [
                     np.mean(history_split["val-loss_total"][-5:]),
@@ -172,6 +176,7 @@ def training_loop_and_cross_validation(
                 ]
             )
 
+        # add results of current run
         if len(all_losses_linear_split_model) == 0:
             all_losses_linear_split_model = [
                 current_cv_losses_linear_split_model
@@ -196,6 +201,7 @@ def training_loop_and_cross_validation(
                 ]
             )
 
+    # get the average results per model hyperparameter combination
     average_error_per_linear_split_model = (
         np.sum(all_losses_linear_split_model, axis=0) / config["k_folds"]
     )
@@ -204,6 +210,7 @@ def training_loop_and_cross_validation(
         np.sum(all_losses_linear_shared_model, axis=0) / config["k_folds"]
     )
 
+    # return
     return (
         average_error_per_linear_split_model,
         average_error_per_linear_shared_model,
