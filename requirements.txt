@@ -3,6 +3,7 @@ captum
 matplotlib
 jupyterlab
 scikit-learn
+ipywidgets
 seaborn
 scipy
 wandb

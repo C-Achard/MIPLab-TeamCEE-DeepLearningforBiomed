@@ -10,8 +10,8 @@ The dataset, weights and other files are available at the following link : [DRIV
 
         Drive                            # Main directory
 
-        ├── subjects_all.tar.gz          # Full dataset, put in DATA folder
-        ├── INTERPRETABILITY             # Interpretability results, mostly .mat files used for the visualisation. Place within the `notebooks/results` folder
+        ├── subjects_all.tar.gz          # Full dataset, put in `DATA` folder
+        ├── INTERPRETABILITY             # Interpretability results. Place within the `notebooks/results` folder
         ├── WEIGHTS                      # Weights of the models from the best runs
         ├── Misc files                   # Miscellaneous files for plots. Place within the `notebooks` folder
 
