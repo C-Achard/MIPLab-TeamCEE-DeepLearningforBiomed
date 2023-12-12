@@ -1,4 +1,4 @@
-"""Functions for data import."""
+"""Functions for data import, data preparation, and model interpretation."""
 from pathlib import Path
 
 import numpy as np
