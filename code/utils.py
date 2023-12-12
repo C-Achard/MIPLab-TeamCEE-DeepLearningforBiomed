@@ -6,6 +6,10 @@ import pandas as pd
 import scipy.io as sio
 from sklearn.model_selection import train_test_split
 
+###-------------------------------------------------------------------------------------------------------------------
+#         general utils
+###-------------------------------------------------------------------------------------------------------------------
+
 
 def get_df_raw_data(path, IDs, save_wt_path=False):
     """Returning a train and test dataframe consisting of the pre-processed MRI data and labels for all subjects.
@@ -143,9 +147,9 @@ def balanced_data_shuffle_cv(train_subjects, test_subjects):
     return train_subjects, test_subjects
 
 
-########################
-# Interpretability utils
-########################
+###-------------------------------------------------------------------------------------------------------------------
+#         utils for model interpretation
+###-------------------------------------------------------------------------------------------------------------------
 
 
 def get_atlas_mapping(
