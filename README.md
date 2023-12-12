@@ -20,12 +20,12 @@ The dataset, weights and other files are available at the following link : [DRIV
         Directory                           # Main directory
 
         ├── code
-                ├────── cross_validation.py
-                ├────── models.py
-                ├────── run.py
-                ├────── run_cv.py
-                ├────── training.py
-                └────── utils.py
+                ├────── cross_validation.py # Cross-validation implementation
+                ├────── models.py          # Implementation of the models
+                ├────── run.py            # Run a given model with given parameters
+                ├────── run_cv.py      # Run cross-validation for a given model with given parameters
+                ├────── training.py      # Training loop function
+                └────── utils.py      # Utility functions : data loading, metrics, etc.
         ├── notebooks                      # Notebooks for the best runs and interpretability results
                 ├────── EGNNA, SelfAtt, LinearShared, LinearSplit : best models notebooks
                 ├────── interpretability-* : interpretability notebooks
@@ -40,13 +40,16 @@ The best model notebooks, interpretability notebooks as well as files useful for
 
 ## Setup environment
 
-Make sure that your environment contains the requirements from requirements.txt.
+- Create a virtual/conda environment with python 3.9
+- Install torch with CUDA if relevant (see [Pytorch](https://pytorch.org/get-started/locally/))
+- Make sure that your environment contains the requirements from `requirements.txt`.
 
 ## Quick Start
 
 Once the environment is setup, go in the directory `/notebooks` and run the notebok for each model to reproduce the results.
+To reproduce the results of the cross-validation, go to the directory `/code` and run the script `run_cv.py`.
 
-## Other information
+## Other information for development
 
 ### Data access on server
 

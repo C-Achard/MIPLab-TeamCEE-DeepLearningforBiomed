@@ -1,7 +1,10 @@
 torch
+captum
 matplotlib
 jupyterlab
 scikit-learn
+seaborn
+scipy
 wandb
 pandas
 einops
