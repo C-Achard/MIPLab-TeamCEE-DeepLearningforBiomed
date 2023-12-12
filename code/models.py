@@ -7,9 +7,7 @@ import torch.nn.functional as F
 from einops import rearrange
 from torch import nn
 
-# TODO(cyril) : see if EGNNA from Homework2 can be used here (if self-attention is not enough)
 logger = logging.getLogger(__name__)
-# logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(level=logging.INFO)
 
 

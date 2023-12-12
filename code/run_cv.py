@@ -1,8 +1,9 @@
-"""Runs nested cross validation."""
+"""Runs cross validation."""
 #
 ###-------------------------------------------------------------------------------------------------------------------
 #         imports
 ###-------------------------------------------------------------------------------------------------------------------
+
 import itertools
 from pathlib import Path
 
@@ -17,7 +18,6 @@ from utils import get_df_raw_data
 DATA_PATH = (Path.cwd().parent / "DATA").resolve()
 print(f"Data path: {DATA_PATH}")
 DATA_PATH = str(DATA_PATH)
-# DATA_PATH = "/media/miplab-nas2/Data3/Hamid/SSBCAPs/HCP100"
 
 ###-------------------------------------------------------------------------------------------------------------------
 #         subject ID list
@@ -130,11 +130,11 @@ data_df_train, data_df_test = get_df_raw_data(DATA_PATH, IDs[:])
 
 NUM_SUBJECTS = len(data_df_train["subject_id"].unique())
 print(f"Number of subjects: {NUM_SUBJECTS}")
+
 ###-------------------------------------------------------------------------------------------------------------------
 #         label encoding
 ###-------------------------------------------------------------------------------------------------------------------
 
-# label encoding
 enc_labels = LabelEncoder()
 enc_tasks = LabelEncoder()
 
@@ -165,8 +165,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 print()
 
-# criterion = nn.CrossEntropyLoss()
-
 config = {
     # general
     "epochs": 30,
@@ -183,22 +181,20 @@ config = {
 #         hyperparameter combinations
 ###-------------------------------------------------------------------------------------------------------------------
 
-learning_rate = [
-    # 1e-5,
-    1e-4,
-    # 1e-3,
-    # 1e-2
-]
-dropout = [0.1, 0.2]
-intermediate_size = [[1000], [2500], [500, 500], [1000, 1000]]
+learning_rate = [1e-5, 1e-4, 1e-3, 1e-2]
+dropout = [0.1, 0.2, 0.3, 0.4, 0.5]
+intermediate_size = [[100], [500], [1000], [1000], [1500], [2000], [2500]]
 layer_norm = [True, False]
 
 
-# Get all possible configuration combination of the parameters above
 all_model_combinations = list(
     itertools.product(learning_rate, dropout, intermediate_size, layer_norm)
 )
 criterion = nn.CrossEntropyLoss()
+
+###-------------------------------------------------------------------------------------------------------------------
+#         run cv training on all combinations and report results in a file
+###-------------------------------------------------------------------------------------------------------------------
 
 (
     average_error_per_linear_split_model,

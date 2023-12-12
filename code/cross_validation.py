@@ -1,7 +1,4 @@
-"""Nested Cross Validation Training."""
-###-------------------------------------------------------------------------------------------------------------------
-#         imports
-###-------------------------------------------------------------------------------------------------------------------
+"""Cross Validation Training - Helper functions."""
 import gc
 
 import numpy as np
@@ -21,9 +18,7 @@ def training_loop_and_cross_validation(
 
     returns cross validation loss of every model using different hyperparameters to select best ones
     """
-    ###-------------------------------------------------------------------------------------------------------------------
-    #          K-fold crossvalidation
-    ###----------------------------------------------------------------------------------------------------------------
+    # k fold cross validation
     CV = KFold(config["k_folds"], shuffle=True)
 
     all_losses_linear_split_model = np.array([])
