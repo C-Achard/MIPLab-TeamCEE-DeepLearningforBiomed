@@ -38,7 +38,7 @@ class LinearLayer(nn.Module):
         self.dropout = dropout
         self._deeplift_mode = None
 
-        # If multiple layers
+        # if multiple layers
         self.interm_layers_finger = nn.ModuleList()
         self.interm_layers_task = nn.ModuleList()
         self.intermediate_size_v = intermediate_size
@@ -111,16 +111,16 @@ class LinearLayer(nn.Module):
 
                 i = 1
 
-            # Classification layers
+            # classification layers
             x_si = self.fingerprints_classifier_i(x_si)
             x_td = self.task_classifier_i(x_td)
 
         else:
-            # If no intermediate layers
+            # if no intermediate layers
             x_si = self.fingerprints_classifier(x)
             x_td = self.task_classifier(x)
 
-        # return an attention weight empty
+        # return an empty attention weight
         return x_si, x_td, torch.tensor([])
 
     def forward_deeplift(self, x):
@@ -150,12 +150,12 @@ class LinearLayer(nn.Module):
 
                 i = 1
 
-            # Classification layers
+            # classification layers
             x_si = self.fingerprints_classifier_i(x_si)
             x_td = self.task_classifier_i(x_td)
 
         else:
-            # If no intermediate layers
+            # if no intermediate layers
             x_si = self.fingerprints_classifier(x)
             x_td = self.task_classifier(x)
 
@@ -234,15 +234,15 @@ class LinearLayerShared(nn.Module):
                 x = nn.ReLU()(x)
                 x = nn.Dropout(self.dropout)(x)
 
-            # Classification layers
+            # classification layers
             x_si = self.fingerprints_classifier_i(x)
             x_td = self.task_classifier_i(x)
         else:
-            # If no intermediate layers
+            # if no intermediate layers
             x_si = self.fingerprints_classifier(x)
             x_td = self.task_classifier(x)
 
-        # return an attention weight empty
+        # return an empty attention weight
         return x_si, x_td, torch.tensor([])
 
     def forward_deeplift(self, x):
@@ -255,11 +255,11 @@ class LinearLayerShared(nn.Module):
                 x = nn.ReLU()(x)
                 x = nn.Dropout(self.dropout)(x)
 
-            # Classification layers
+            # classification layers
             x_si = self.fingerprints_classifier_i(x)
             x_td = self.task_classifier_i(x)
         else:
-            # If no intermediate layers
+            # if no intermediate layers
             x_si = self.fingerprints_classifier(x)
             x_td = self.task_classifier(x)
 
@@ -354,7 +354,8 @@ class MRIAttention(nn.Module):
         """Forward pass of the model."""
         if self._deeplift_mode is not None:
             return self.forward_deeplift(x)
-        ## Attention ##
+
+        # attention
         x_att, attn_weights = self.multihead_attention(x, x, x)
         if self.add_and_norm:
             x = x + x_att
@@ -363,17 +364,16 @@ class MRIAttention(nn.Module):
         else:
             x = x_att
             x = rearrange(x, "b h w -> b (h w)")
-        # attn_weights = torch.zeros(x.shape[0], self.num_heads, x.shape[1], x.shape[1])
-        # x = rearrange(x, "b h w -> b (h w)")
 
         logger.debug(f"multihead_attention: {x.shape}")
-        ## Intermediate layers ##
+
+        # intermediate layers
         x = self.intermediate(x)
         x = self.intermediate_norm(x)
         x = nn.ReLU()(x)
         x = nn.Dropout(self.dropout)(x)
 
-        ## Classification layers ##
+        # classification layers
         x_si = self.fingerprints(x)
         x_td = self.task_decoder(x)
         return x_si, x_td, attn_weights
@@ -385,8 +385,7 @@ class MRIAttention(nn.Module):
         """
         print("deeplift mode")
         print("x in", x.shape)
-        # x, _ = self.multihead_attention(x, x, x)
-        # x = nn.Dropout(self.attention_dropout)(x)
+
         x = rearrange(x, "b h w -> b (h w)")
         x = self.intermediate(x)
         x = self.intermediate_norm(x)
@@ -434,7 +433,6 @@ class EGNNA(nn.Module):
         """
         super().__init__()
         self.weight = nn.Linear(in_features, out_features, bias=False)
-        # self.S = nn.Linear(2 * out_features, in_features, bias=False)
         self.S = nn.Linear(in_features, in_features, bias=False)
         self.activation = activation if activation is not None else lambda x: x
         self.att_activation = (
@@ -465,8 +463,6 @@ class EGNNA(nn.Module):
         support = self.weight(x)
         logger.debug(f"support: {support.shape}")
 
-        # cat_features = torch.cat([support, support], dim=2)
-        # logger.debug(f"cat_features: {cat_features.shape}")
         att_score = self.att_activation(self.S(support))
         att_score = self.softmax(att_score)
 
@@ -526,7 +522,8 @@ class MRICustomAttention(nn.Module):
         """Forward pass of the model."""
         if self._deeplift_mode is not None:
             return self.forward_deeplift(x)
-        ## Attention ##
+
+        # attention
         x_att, attn_weights = self.attention(x)
         x_att = nn.Dropout(self.attention_dropout)(x_att)
 
@@ -542,9 +539,11 @@ class MRICustomAttention(nn.Module):
         x = self.intermediate_norm(x)
         x = nn.ReLU()(x)
         x = nn.Dropout(self.intermediate_dropout)(x)
-        ## Classification layers ##
+
+        # classification layers
         x_si = self.fingerprints(x)
         x_td = self.task_decoder(x)
+
         return x_si, x_td, attn_weights
 
     def forward_deeplift(self, x):

@@ -27,7 +27,6 @@ def get_df_raw_data(path, IDs, save_wt_path=False):
         path = Path(path)
         folder_id = path / str(subject_id)
         # LOAD THE 20 files .MAT if the name contain '400'
-        # files = [f for f in folder_id.iterdir() if "400" in f]
         files = [f for f in folder_id.iterdir() if "400" in f.name]
         for _nb, file in enumerate(files):
             # for training dataset
@@ -41,7 +40,6 @@ def get_df_raw_data(path, IDs, save_wt_path=False):
                     mat_t = str(folder_id / file)
                 else:
                     mat_t = sio.loadmat(str(folder_id / file))
-                # label_id_t = file.split(".")[0]
                 label_id_t = Path(file).name.split(".")[0]
 
                 # complete dict with label_id and taks and mat
@@ -80,7 +78,6 @@ def get_df_raw_data(path, IDs, save_wt_path=False):
     dataframe_test["subject_id"] = raw_data_test["subject_id"]
     dataframe_test["task"] = raw_data_test["task"]
     dataframe_test["mat"] = raw_data_test["mat"]
-    # return raw_data_train, raw_data_test
     return dataframe_train, dataframe_test
 
 
@@ -270,7 +267,6 @@ def make_networks_ids_contiguous(networks_ids_for_plot):
         i = previous[1]
         networks_ids_for_plot_remapped[network] = [i, i + finish - start]
         previous = [i, i + finish - start]
-    # networks_ids_for_plot = networks_ids_for_plot_remapped
     return networks_ids_for_plot_remapped
 
 
@@ -297,19 +293,14 @@ def move_networks_to_adjacent_rows(matrix):
     for _k, v in networks_ids_for_plot.items():
         start, finish = v
         crop = matrix[start:finish, :]
-        # print(f"Moving {start}:{finish} to {current_index}:{current_index+crop.shape[0]}")
-        # print(f"Length of crop: {crop.shape[0]}")
         total_crop_length += crop.shape[0]
         matrix_reordered[
             current_index : current_index + crop.shape[0], :
         ] = crop
-        # print(f"Length of matrix_reordered: {matrix_reordered[current_index:current_index+crop.shape[0],:].shape[0]}")
         total_matrix_length += matrix_reordered[
             current_index : current_index + crop.shape[0], :
         ].shape[0]
         current_index += crop.shape[0]
-        # print(f"Total crop length: {total_crop_length}")
-        # print(f"Total matrix_reordered length: {total_matrix_length}")
     return matrix_reordered
 
 
@@ -323,19 +314,14 @@ def move_networks_to_adjacent_columns(matrix):
     for _k, v in networks_ids_for_plot.items():
         start, finish = v
         crop = matrix[:, start:finish]
-        # print(f"Moving {start}:{finish} to {current_index}:{current_index+crop.shape[1]}")
-        # print(f"Length of crop: {crop.shape[0]}")
         total_crop_length += crop.shape[1]
         matrix_reordered[
             :, current_index : current_index + crop.shape[1]
         ] = crop
-        # print(f"Length of matrix_reordered: {matrix_reordered[current_index:current_index+crop.shape[0],:].shape[0]}")
         total_matrix_length += matrix_reordered[
             :, current_index : current_index + crop.shape[1]
         ].shape[1]
         current_index += crop.shape[1]
-        # print(f"Total crop length: {total_crop_length}")
-        # print(f"Total matrix_reordered length: {total_matrix_length}")
     return matrix_reordered
 
 
