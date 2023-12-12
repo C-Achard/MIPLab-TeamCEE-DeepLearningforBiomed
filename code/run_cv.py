@@ -1,5 +1,5 @@
 """Runs cross validation."""
-#
+
 ###-------------------------------------------------------------------------------------------------------------------
 #         imports
 ###-------------------------------------------------------------------------------------------------------------------
@@ -14,7 +14,6 @@ from cross_validation import training_loop_and_cross_validation
 from sklearn.preprocessing import LabelEncoder
 from utils import get_df_raw_data
 
-## Data path ##
 DATA_PATH = (Path.cwd().parent / "DATA").resolve()
 print(f"Data path: {DATA_PATH}")
 DATA_PATH = str(DATA_PATH)

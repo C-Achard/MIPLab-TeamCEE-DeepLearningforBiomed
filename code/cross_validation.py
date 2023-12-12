@@ -16,7 +16,7 @@ def training_loop_and_cross_validation(
 ):
     """Runs cross validation on the train set.
 
-    returns cross validation loss of every model using different hyperparameters to select best ones
+    returns the cross validation loss of every model combination (each with different hyperparameters) in order to select the best performing one
     """
     # k fold cross validation
     CV = KFold(config["k_folds"], shuffle=True)
