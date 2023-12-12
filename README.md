@@ -11,9 +11,9 @@ The dataset, weights and other files are available at the following link : [DRIV
         Drive                            # Main directory
 
         ├── subjects_all.tar.gz          # Full dataset, put in DATA folder
-        ├── INTERPRETABILITY             # Interpretability results, mostly .mat files used for the visualisation
+        ├── INTERPRETABILITY             # Interpretability results, mostly .mat files used for the visualisation. Place within the `notebooks/results` folder
         ├── WEIGHTS                      # Weights of the models from the best runs
-        ├── Misc files                   # Miscellaneous files for plots
+        ├── Misc files                   # Miscellaneous files for plots. Place within the `notebooks` folder
 
 ## Directory Layout
 
@@ -27,6 +27,8 @@ The dataset, weights and other files are available at the following link : [DRIV
                 ├────── training.py
                 └────── utils.py
         ├── notebooks                      # Notebooks for the best runs and interpretability results
+                ├────── EGNNA, SelfAtt, LinearShared, LinearSplit : best models notebooks
+                ├────── interpretability-* : interpretability notebooks
         ├── .gitignore
         ├── README.md
         ├── pyproject.toml
