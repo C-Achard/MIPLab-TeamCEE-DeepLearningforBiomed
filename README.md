@@ -90,7 +90,7 @@ Your commits will now be checked by pre-commit.
 * Upload on the server:
 
     a) file:
-   `scp filename.extension gasparID@serveraddress:filepathonserver` (ex: scp MEG84_subjects_ID.mat marcou@miplabsrv3.epfl.ch:/media/miplab-nas2/Code/Hamid_ML4Science_ALE/utils/HCP_info
+   `scp filename.extension gasparID@serveraddress:filepathonserver`
 
     b)  whole directory:
  `scp -r pathtothefolderonpersonalcomputer gasparID@serveraddress:filepathonserver`
