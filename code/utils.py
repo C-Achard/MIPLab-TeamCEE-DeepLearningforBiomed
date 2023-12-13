@@ -287,6 +287,26 @@ def network_mean(matrix, network_ids=None):
     return mean_matrix
 
 
+def network_mean_values(matrix, network_ids=None):
+    """Computes the mean of the matrix for each network, but returns only one value per network."""
+    # print(f"Matrix shape: {matrix.shape}")
+    if network_ids is None:
+        network_ids = get_network_ids_for_plots()
+    # print(f"Network ids: {network_ids}")
+    # matrix is 400x400, goal is to have 14x14, 2 times per hemisphere
+    mean_matrix = np.zeros((14, 14))
+    for i, (_k1, v1) in enumerate(network_ids.items()):
+        for j, (_k2, v2) in enumerate(network_ids.items()):
+            # take exact value in the middle of the network
+            # print(f"Matrix coords : {v1, v2}")
+            # print(f"Mean matrix coords : {(v1[0] + v1[1]) // 2, (v2[0] + v2[1]) // 2} : {matrix[(v1[0] + v1[1]) // 2, (v2[0] + v2[1]) // 2]}")
+            mean_matrix[i, j] = matrix[
+                (v1[0] + v1[1]) // 2, (v2[0] + v2[1]) // 2
+            ]
+            # mean_matrix[i,j] = matrix[v1[0] : v1[1] + 1, v2[0] : v2[1] + 1].flatten().mean()
+    return mean_matrix
+
+
 def move_networks_to_adjacent_rows(matrix):
     """Moves networks to adjacent positions in the matrix for each hemisphere."""
     matrix_reordered = np.zeros(matrix.shape)
