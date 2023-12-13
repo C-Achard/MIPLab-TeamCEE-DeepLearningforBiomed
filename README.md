@@ -29,6 +29,10 @@ The dataset, weights and other files are available at the following link : [DRIV
         ├── notebooks                      # Notebooks for the best runs and interpretability results
                 ├────── EGNNA, SelfAtt, LinearShared, LinearSplit : best models notebooks
                 ├────── interpretability-* : interpretability notebooks
+        ├── DATA                           # Data folder
+                ├────── 100307            # Subject folders
+                ├────── 100408
+                ├────── ...
         ├── .gitignore
         ├── README.md
         ├── pyproject.toml
@@ -46,7 +50,8 @@ The best model notebooks, interpretability notebooks as well as files useful for
 
 ## Quick Start
 
-Once the environment is setup, go in the directory `/notebooks` and run the notebok for each model to reproduce the results.
+Unzip the dataset and place the subjects' folders in the `DATA` folder.
+Once the environment is setup and the data is ready, go in the directory `/notebooks` and run the notebok for each model to reproduce the results.
 To reproduce the results of the cross-validation, go to the directory `/code` and run the script `run_cv.py`.
 
 ## Other information for development
